@@ -1,12 +1,4 @@
--- =============================================================================
 -- JEMVOYAGE LTD — 0004 · Media library, CMS, SEO, settings
--- =============================================================================
--- This migration is what makes requirements §34–§49 enforceable: no public-facing
--- image or copy is ever hard-coded in a component. Every visual surface resolves
--- through jemvoyage_media, and every media row is replaceable from the admin CMS
--- with zero code changes and zero redeploys.
--- =============================================================================
-
 
 -- ---------------------------------------------------------------- media -----
 create table if not exists public.jemvoyage_media (
@@ -24,13 +16,13 @@ create table if not exists public.jemvoyage_media (
   height         integer,
   file_size      bigint,
   mime_type      text,
-  focal_x        numeric(4,3) not null default 0.5,   -- art-directed crop centre
+  focal_x        numeric(4,3) not null default 0.5,
   focal_y        numeric(4,3) not null default 0.5,
-  blur_data_url  text,                                -- LQIP for next/image
+  blur_data_url  text,
   credit         text,
   source_url     text,
   license        text,
-  is_placeholder boolean     not null default false,  -- §48: flagged in admin, invisible to public
+  is_placeholder boolean     not null default false,
   is_active      boolean     not null default true,
   created_at     timestamptz not null default now(),
   updated_at     timestamptz not null default now(),
@@ -50,13 +42,13 @@ create index if not exists jemvoyage_media_tags_idx         on public.jemvoyage_
 create index if not exists jemvoyage_media_title_trgm_idx   on public.jemvoyage_media using gin (coalesce(title,'') gin_trgm_ops);
 select public.jemvoyage_attach_touch('public.jemvoyage_media');
 
--- Deferred FK from 0002 (jemvoyage_users predates jemvoyage_media).
-alter table public.jemvoyage_users drop constraint if exists jemvoyage_users_avatar_media_fk;
+alter table public.jemvoyage_users
+  drop constraint if exists jemvoyage_users_avatar_media_fk;
 alter table public.jemvoyage_users
   add constraint jemvoyage_users_avatar_media_fk
   foreign key (avatar_media_id) references public.jemvoyage_media(id) on delete set null;
 
--- §44: when a real image is removed and nothing replaces it, fall back to a
+-- Requirement 44: deleting a real image must gracefully fall back to a
 -- category-appropriate placeholder rather than rendering a broken box.
 create or replace function public.jemvoyage_resolve_media(p_media_id uuid, p_category text default 'general')
 returns public.jemvoyage_media
@@ -78,7 +70,6 @@ as $$
    limit 1;
 $$;
 
-
 -- ------------------------------------------------------------- settings -----
 create table if not exists public.jemvoyage_settings (
   key         text primary key,
@@ -86,19 +77,18 @@ create table if not exists public.jemvoyage_settings (
   label       text,
   description text,
   group_name  text        not null default 'general',
-  is_public   boolean     not null default false,   -- gates anon SELECT
+  is_public   boolean     not null default false,
   updated_at  timestamptz not null default now(),
   updated_by  uuid references auth.users(id) on delete set null
 );
 select public.jemvoyage_attach_touch('public.jemvoyage_settings');
 
-
 -- ------------------------------------------------------------------ SEO -----
 create table if not exists public.jemvoyage_seo_metadata (
   id               uuid primary key default gen_random_uuid(),
-  entity_type      text not null,          -- 'tour' | 'destination' | 'page' | 'route'
+  entity_type      text not null,
   entity_id        uuid,
-  path             text,                   -- for static routes with no entity row
+  path             text,
   seo_title        text,
   meta_description text,
   canonical_url    text,
@@ -118,65 +108,58 @@ create unique index if not exists jemvoyage_seo_entity_uq on public.jemvoyage_se
 create unique index if not exists jemvoyage_seo_path_uq   on public.jemvoyage_seo_metadata (path) where path is not null;
 select public.jemvoyage_attach_touch('public.jemvoyage_seo_metadata');
 
-
 -- ------------------------------------------------------------ CMS pages -----
 create table if not exists public.jemvoyage_cms_pages (
-  id            uuid primary key default gen_random_uuid(),
-  slug          text not null unique,
-  title         text not null,
-  subtitle      text,
-  body          jsonb not null default '[]'::jsonb,   -- ordered block list
-  hero_media_id uuid references public.jemvoyage_media(id) on delete set null,
-  status        text not null default 'draft',
-  published_at  timestamptz,
-  display_order integer not null default 0,
-  created_at    timestamptz not null default now(),
-  updated_at    timestamptz not null default now(),
-  created_by    uuid references auth.users(id) on delete set null,
-  updated_by    uuid references auth.users(id) on delete set null,
-  deleted_at    timestamptz,
+  id             uuid primary key default gen_random_uuid(),
+  slug           text not null unique,
+  title          text not null,
+  subtitle       text,
+  body           jsonb not null default '[]'::jsonb,
+  hero_media_id  uuid references public.jemvoyage_media(id) on delete set null,
+  status         text not null default 'draft',
+  published_at   timestamptz,
+  display_order  integer not null default 0,
+  created_at     timestamptz not null default now(),
+  updated_at     timestamptz not null default now(),
+  created_by     uuid references auth.users(id) on delete set null,
+  updated_by     uuid references auth.users(id) on delete set null,
+  deleted_at     timestamptz,
   constraint jemvoyage_cms_pages_status_ck check (status in ('draft','published','archived'))
 );
 create index if not exists jemvoyage_cms_pages_status_idx on public.jemvoyage_cms_pages (status) where deleted_at is null;
 select public.jemvoyage_attach_touch('public.jemvoyage_cms_pages');
 
-
 -- ----------------------------------------------------------- hero slides -----
--- §39: desktop and mobile art direction are separate media rows, never one
--- desktop image squeezed into a phone viewport.
 create table if not exists public.jemvoyage_hero_slides (
-  id                  uuid primary key default gen_random_uuid(),
-  placement           text not null default 'home',
-  eyebrow             text,
-  headline            text not null,
-  subheadline         text,
-  desktop_media_id    uuid references public.jemvoyage_media(id) on delete set null,
-  mobile_media_id     uuid references public.jemvoyage_media(id) on delete set null,
-  video_url           text,
-  overlay_style       text not null default 'gradient-bottom',
-  overlay_opacity     numeric(3,2) not null default 0.45,
-  cta_label           text,
-  cta_url             text,
-  secondary_cta_label text,
-  secondary_cta_url   text,
-  is_active           boolean not null default true,
-  display_order       integer not null default 0,
-  starts_at           timestamptz,
-  ends_at             timestamptz,
-  created_at          timestamptz not null default now(),
-  updated_at          timestamptz not null default now(),
-  created_by          uuid references auth.users(id) on delete set null,
-  updated_by          uuid references auth.users(id) on delete set null,
+  id                   uuid primary key default gen_random_uuid(),
+  placement            text not null default 'home',
+  eyebrow              text,
+  headline             text not null,
+  subheadline          text,
+  desktop_media_id     uuid references public.jemvoyage_media(id) on delete set null,
+  mobile_media_id      uuid references public.jemvoyage_media(id) on delete set null,
+  video_url            text,
+  overlay_style        text not null default 'gradient-bottom',
+  overlay_opacity      numeric(3,2) not null default 0.45,
+  cta_label            text,
+  cta_url              text,
+  secondary_cta_label  text,
+  secondary_cta_url    text,
+  is_active            boolean not null default true,
+  display_order        integer not null default 0,
+  starts_at            timestamptz,
+  ends_at              timestamptz,
+  created_at           timestamptz not null default now(),
+  updated_at           timestamptz not null default now(),
+  created_by           uuid references auth.users(id) on delete set null,
+  updated_by           uuid references auth.users(id) on delete set null,
   constraint jemvoyage_hero_overlay_ck check (overlay_style in ('none','gradient-bottom','gradient-left','scrim','vignette')),
   constraint jemvoyage_hero_opacity_ck check (overlay_opacity between 0 and 1)
 );
 create index if not exists jemvoyage_hero_placement_idx on public.jemvoyage_hero_slides (placement, display_order) where is_active;
 select public.jemvoyage_attach_touch('public.jemvoyage_hero_slides');
 
-
 -- ----------------------------------------------------- homepage sections -----
--- §11: all 15 homepage bands are rows here, so ordering, copy, imagery and CTAs
--- are editable without touching the page component.
 create table if not exists public.jemvoyage_homepage_sections (
   id            uuid primary key default gen_random_uuid(),
   section_key   text not null unique,
@@ -196,7 +179,6 @@ create table if not exists public.jemvoyage_homepage_sections (
   updated_by    uuid references auth.users(id) on delete set null
 );
 select public.jemvoyage_attach_touch('public.jemvoyage_homepage_sections');
-
 
 -- ---------------------------------------------------------------- menus -----
 create table if not exists public.jemvoyage_menus (
@@ -224,7 +206,6 @@ create table if not exists public.jemvoyage_menu_items (
 create index if not exists jemvoyage_menu_items_menu_idx on public.jemvoyage_menu_items (menu_id, display_order);
 select public.jemvoyage_attach_touch('public.jemvoyage_menus');
 select public.jemvoyage_attach_touch('public.jemvoyage_menu_items');
-
 
 -- ----------------------------------------------------------------- blog -----
 create table if not exists public.jemvoyage_blog_categories (
@@ -264,7 +245,6 @@ create index if not exists jemvoyage_blog_trgm_idx on public.jemvoyage_blog_post
 select public.jemvoyage_attach_touch('public.jemvoyage_blog_categories');
 select public.jemvoyage_attach_touch('public.jemvoyage_blog_posts');
 
-
 -- ----------------------------------------------------------------- FAQs -----
 create table if not exists public.jemvoyage_faqs (
   id            uuid primary key default gen_random_uuid(),
@@ -280,50 +260,47 @@ create table if not exists public.jemvoyage_faqs (
 create index if not exists jemvoyage_faqs_cat_idx on public.jemvoyage_faqs (category, display_order) where is_active;
 select public.jemvoyage_attach_touch('public.jemvoyage_faqs');
 
-
 -- --------------------------------------------------------------- offers -----
 create table if not exists public.jemvoyage_offers (
-  id             uuid primary key default gen_random_uuid(),
-  slug           text not null unique,
-  title          text not null,
-  summary        text,
-  body           text,
-  media_id       uuid references public.jemvoyage_media(id) on delete set null,
-  discount_type  text,
-  discount_value numeric(12,2),
-  promo_code     text,
-  applies_to     text not null default 'all',
-  starts_at      timestamptz,
-  ends_at        timestamptz,
-  terms          text,
-  is_active      boolean not null default true,
-  display_order  integer not null default 0,
-  created_at     timestamptz not null default now(),
-  updated_at     timestamptz not null default now(),
-  created_by     uuid references auth.users(id) on delete set null,
-  updated_by     uuid references auth.users(id) on delete set null,
+  id                uuid primary key default gen_random_uuid(),
+  slug              text not null unique,
+  title             text not null,
+  summary           text,
+  body              text,
+  media_id          uuid references public.jemvoyage_media(id) on delete set null,
+  discount_type     text,
+  discount_value    numeric(12,2),
+  promo_code        text,
+  applies_to        text not null default 'all',
+  starts_at         timestamptz,
+  ends_at           timestamptz,
+  terms             text,
+  is_active         boolean not null default true,
+  display_order     integer not null default 0,
+  created_at        timestamptz not null default now(),
+  updated_at        timestamptz not null default now(),
+  created_by        uuid references auth.users(id) on delete set null,
+  updated_by        uuid references auth.users(id) on delete set null,
   constraint jemvoyage_offers_discount_ck check (discount_type is null or discount_type in ('percent','fixed')),
   constraint jemvoyage_offers_applies_ck  check (applies_to in ('all','tours','safaris','rentals','transfers','corporate'))
 );
 create unique index if not exists jemvoyage_offers_promo_uq on public.jemvoyage_offers (upper(promo_code)) where promo_code is not null;
 select public.jemvoyage_attach_touch('public.jemvoyage_offers');
 
-
 -- ---------------------------------------------------- newsletter/contact -----
 create table if not exists public.jemvoyage_newsletter_subscribers (
-  id              uuid primary key default gen_random_uuid(),
-  email           citext not null unique,
-  full_name       text,
-  source          text not null default 'website',
-  segments        text[] not null default '{}',
-  is_confirmed    boolean not null default false,
-  confirmed_at    timestamptz,
+  id             uuid primary key default gen_random_uuid(),
+  email          citext not null unique,
+  full_name      text,
+  source         text not null default 'website',
+  segments       text[] not null default '{}',
+  is_confirmed   boolean not null default false,
+  confirmed_at   timestamptz,
   unsubscribed_at timestamptz,
-  created_at      timestamptz not null default now(),
-  updated_at      timestamptz not null default now()
+  created_at     timestamptz not null default now(),
+  updated_at     timestamptz not null default now()
 );
 select public.jemvoyage_attach_touch('public.jemvoyage_newsletter_subscribers');
-
 
 -- ------------------------------------------------------------------ RLS -----
 alter table public.jemvoyage_media                  enable row level security;
@@ -340,8 +317,6 @@ alter table public.jemvoyage_faqs                   enable row level security;
 alter table public.jemvoyage_offers                 enable row level security;
 alter table public.jemvoyage_newsletter_subscribers enable row level security;
 
--- Media: marketing imagery is world-readable; customer documents and rental
--- inspection photography are NOT, even though they share the table.
 create policy jemvoyage_media_public_read on public.jemvoyage_media
   for select to anon, authenticated
   using (is_active and deleted_at is null and category <> 'documents' and category <> 'inspections');
@@ -447,7 +422,6 @@ create policy jemvoyage_offers_write on public.jemvoyage_offers
   using (public.jemvoyage_has_permission('offers.manage'))
   with check (public.jemvoyage_has_permission('offers.manage'));
 
--- Anonymous visitors may subscribe, but may never read the subscriber list back.
 create policy jemvoyage_newsletter_insert_public on public.jemvoyage_newsletter_subscribers
   for insert to anon, authenticated with check (true);
 create policy jemvoyage_newsletter_staff_read on public.jemvoyage_newsletter_subscribers
@@ -455,4 +429,4 @@ create policy jemvoyage_newsletter_staff_read on public.jemvoyage_newsletter_sub
 create policy jemvoyage_newsletter_write on public.jemvoyage_newsletter_subscribers
   for all to authenticated
   using (public.jemvoyage_has_permission('notifications.manage'))
-  with check (public.jemvoyage_has_permission('notifications.manage'));
+  with check (public.jemvoyage_has_permission('notifications.manage'));;

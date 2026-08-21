@@ -1,15 +1,6 @@
--- =============================================================================
--- JEMVOYAGE LTD — 0008 · CMS seed
--- =============================================================================
--- Placeholder media, hero, homepage bands, navigation, settings, FAQs, blog
--- categories. Idempotent — safe to re-run.
---
--- Every placeholder image below was fetched and VISUALLY INSPECTED before being
--- selected; candidates that did not match their intended subject were rejected.
--- All carry credit, license and source_url, all are flagged is_placeholder so
--- the admin CMS can list what still needs real photography (§48), and none is
--- referenced from application code (§49).
--- =============================================================================
+-- JEMVOYAGE LTD — 0008 · CMS seed: placeholder media, hero, homepage, nav, settings
+-- Idempotent. Every placeholder was visually inspected before selection; none is
+-- referenced from code, all are replaceable from the admin CMS.
 
 create unique index if not exists jemvoyage_media_external_uq
   on public.jemvoyage_media (external_url)
@@ -93,7 +84,6 @@ do update set
 
 
 -- ----------------------------------------------------------- hero slides -----
--- No natural unique key on hero slides, so the home placement is rebuilt.
 delete from public.jemvoyage_hero_slides where placement = 'home';
 
 insert into public.jemvoyage_hero_slides
@@ -195,8 +185,6 @@ join (values
 
 
 -- ------------------------------------------------------------- settings -----
--- Contact details are deliberately generic placeholders; Jemvoyage replaces
--- them in the CMS. No real third-party details are invented here.
 insert into public.jemvoyage_settings (key, value, label, group_name, is_public) values
   ('site.name',        '"Jemvoyage"'::jsonb,                          'Site name',       'brand',   true),
   ('site.tagline',     '"Premium journeys across Kenya and East Africa"'::jsonb, 'Tagline', 'brand', true),
@@ -247,4 +235,4 @@ insert into public.jemvoyage_blog_categories (slug, name, description, display_o
   ('car-hire',     'Car hire',     'Driving, routes and vehicle guidance.',          40),
   ('luxury',       'Luxury',       'Elevated stays and private experiences.',        50),
   ('family',       'Family',       'Travelling with children.',                      60)
-on conflict (slug) do update set name = excluded.name, description = excluded.description;
+on conflict (slug) do update set name = excluded.name, description = excluded.description;;

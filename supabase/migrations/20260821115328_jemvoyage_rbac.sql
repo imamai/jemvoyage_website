@@ -1,22 +1,11 @@
--- =============================================================================
 -- JEMVOYAGE LTD — 0002 · Identity, roles & permissions
--- =============================================================================
--- Establishes the RBAC spine that every other Jemvoyage module's RLS policies
--- call. Modelled on the margaret_* permission pattern already proven in this
--- project (SECURITY DEFINER helpers + granular `resource.action` keys), but
--- entirely self-contained under the jemvoyage_ prefix.
--- =============================================================================
 
-
--- -----------------------------------------------------------------------------
--- jemvoyage_users — the Jemvoyage profile row for an auth.users identity
--- -----------------------------------------------------------------------------
 create table if not exists public.jemvoyage_users (
   id              uuid primary key references auth.users(id) on delete cascade,
   full_name       text        not null,
   email           citext,
   phone           text,
-  avatar_media_id uuid,                      -- FK wired up in the media migration
+  avatar_media_id uuid,
   job_title       text,
   bio             text,
   locale          text        not null default 'en',
@@ -36,17 +25,13 @@ create index if not exists jemvoyage_users_name_trgm_idx on public.jemvoyage_use
 
 select public.jemvoyage_attach_touch('public.jemvoyage_users');
 
-
--- -----------------------------------------------------------------------------
--- Roles / permissions / assignments
--- -----------------------------------------------------------------------------
 create table if not exists public.jemvoyage_roles (
   id            uuid primary key default gen_random_uuid(),
-  name          text        not null unique,   -- machine key, e.g. fleet_manager
-  label         text        not null,          -- display label, e.g. Fleet Manager
+  name          text        not null unique,
+  label         text        not null,
   description   text,
-  is_staff      boolean     not null default true,   -- false => external (customer/agent)
-  is_system     boolean     not null default false,  -- true  => not deletable from the UI
+  is_staff      boolean     not null default true,
+  is_system     boolean     not null default false,
   display_order integer     not null default 0,
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now()
@@ -54,9 +39,9 @@ create table if not exists public.jemvoyage_roles (
 
 create table if not exists public.jemvoyage_permissions (
   id          uuid primary key default gen_random_uuid(),
-  key         text not null unique,            -- bookings.approve
-  resource    text not null,                   -- bookings
-  action      text not null,                   -- approve
+  key         text not null unique,
+  resource    text not null,
+  action      text not null,
   label       text not null,
   description text,
   created_at  timestamptz not null default now()
@@ -83,85 +68,47 @@ create index if not exists jemvoyage_user_roles_role_idx on public.jemvoyage_use
 
 select public.jemvoyage_attach_touch('public.jemvoyage_roles');
 
-
--- -----------------------------------------------------------------------------
--- Authorisation helpers — called by every Jemvoyage RLS policy
--- -----------------------------------------------------------------------------
 create or replace function public.jemvoyage_has_role(p_role text)
-returns boolean
-language sql
-stable
-security definer
-set search_path = public
-as $$
+returns boolean language sql stable security definer set search_path = public as $$
   select exists (
     select 1
     from public.jemvoyage_user_roles ur
     join public.jemvoyage_roles r on r.id = ur.role_id
     join public.jemvoyage_users u on u.id = ur.user_id
-    where ur.user_id = auth.uid()
-      and r.name = p_role
-      and u.is_active
-      and u.deleted_at is null
+    where ur.user_id = auth.uid() and r.name = p_role and u.is_active and u.deleted_at is null
   );
 $$;
 
 create or replace function public.jemvoyage_is_super_admin()
-returns boolean
-language sql
-stable
-security definer
-set search_path = public
-as $$
+returns boolean language sql stable security definer set search_path = public as $$
   select public.jemvoyage_has_role('super_admin');
 $$;
 
 create or replace function public.jemvoyage_is_staff()
-returns boolean
-language sql
-stable
-security definer
-set search_path = public
-as $$
+returns boolean language sql stable security definer set search_path = public as $$
   select exists (
     select 1
     from public.jemvoyage_user_roles ur
     join public.jemvoyage_roles r on r.id = ur.role_id
     join public.jemvoyage_users u on u.id = ur.user_id
-    where ur.user_id = auth.uid()
-      and r.is_staff
-      and u.is_active
-      and u.deleted_at is null
+    where ur.user_id = auth.uid() and r.is_staff and u.is_active and u.deleted_at is null
   );
 $$;
 
 create or replace function public.jemvoyage_has_permission(p_key text)
-returns boolean
-language sql
-stable
-security definer
-set search_path = public
-as $$
+returns boolean language sql stable security definer set search_path = public as $$
   select public.jemvoyage_is_super_admin() or exists (
     select 1
     from public.jemvoyage_user_roles ur
     join public.jemvoyage_role_permissions rp on rp.role_id = ur.role_id
     join public.jemvoyage_permissions p on p.id = rp.permission_id
     join public.jemvoyage_users u on u.id = ur.user_id
-    where ur.user_id = auth.uid()
-      and p.key = p_key
-      and u.is_active
-      and u.deleted_at is null
+    where ur.user_id = auth.uid() and p.key = p_key and u.is_active and u.deleted_at is null
   );
 $$;
 
 create or replace function public.jemvoyage_my_permissions()
-returns setof text
-language sql
-stable
-security definer
-set search_path = public
-as $$
+returns setof text language sql stable security definer set search_path = public as $$
   select distinct p.key
   from public.jemvoyage_user_roles ur
   join public.jemvoyage_role_permissions rp on rp.role_id = ur.role_id
@@ -169,23 +116,8 @@ as $$
   where ur.user_id = auth.uid();
 $$;
 
-
--- -----------------------------------------------------------------------------
--- Signup hook — deliberately scoped
--- -----------------------------------------------------------------------------
--- auth.users in this shared project already carries four triggers owned by other
--- applications. This one is gated on raw_user_meta_data->>'app' = 'jemvoyage' so
--- it stays inert for margaret / kida / mejasan / emiwama signups, and it
--- swallows its own errors so a Jemvoyage fault can never roll back a signup
--- belonging to another app. The application layer additionally calls an
--- idempotent ensureJemvoyageUser() on first authenticated request, so anything
--- lost to the exception guard self-heals on next login.
 create or replace function public.jemvoyage_handle_new_user()
-returns trigger
-language plpgsql
-security definer
-set search_path = public
-as $$
+returns trigger language plpgsql security definer set search_path = public as $$
 declare
   v_role_id uuid;
 begin
@@ -210,7 +142,7 @@ begin
       on conflict do nothing;
     end if;
   exception when others then
-    null;   -- never propagate into the signup transaction
+    null;
   end;
 
   return new;
@@ -222,10 +154,6 @@ create trigger jemvoyage_on_auth_user_created
   after insert on auth.users
   for each row execute function public.jemvoyage_handle_new_user();
 
-
--- -----------------------------------------------------------------------------
--- RLS
--- -----------------------------------------------------------------------------
 alter table public.jemvoyage_users            enable row level security;
 alter table public.jemvoyage_roles            enable row level security;
 alter table public.jemvoyage_permissions      enable row level security;
@@ -293,4 +221,4 @@ create policy jemvoyage_user_roles_select_self on public.jemvoyage_user_roles
 create policy jemvoyage_user_roles_write_admin on public.jemvoyage_user_roles
   for all to authenticated
   using (public.jemvoyage_has_permission('users.manage'))
-  with check (public.jemvoyage_has_permission('users.manage'));
+  with check (public.jemvoyage_has_permission('users.manage'));;

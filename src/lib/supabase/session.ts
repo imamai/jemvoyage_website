@@ -41,10 +41,14 @@ export async function updateSession(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
+  /*
+   * `/account` is intentionally NOT protected yet. The customer portal is still
+   * a "coming soon" panel holding nothing private, and gating it would bounce
+   * visitors to a /sign-in route that does not exist — turning a nav link into
+   * a dead end. Re-add it here the moment the portal renders real data.
+   */
   const isProtected =
-    pathname.startsWith("/account") ||
-    pathname.startsWith("/admin") ||
-    pathname.startsWith("/portal");
+    pathname.startsWith("/admin") || pathname.startsWith("/portal");
 
   if (isProtected && !user) {
     const redirectUrl = request.nextUrl.clone();

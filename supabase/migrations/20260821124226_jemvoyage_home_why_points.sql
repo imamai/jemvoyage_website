@@ -1,10 +1,7 @@
--- =============================================================================
 -- JEMVOYAGE LTD — 0009 · "Why Jemvoyage" propositions
--- =============================================================================
 -- Stored as a public setting so Marketing can reword them in the CMS without a
--- deploy. Deliberately factual: no awards, certifications, partnerships or
--- customer testimonials are claimed anywhere in seeded content (§70).
--- =============================================================================
+-- deploy. Deliberately factual: no awards, certifications or partnerships are
+-- claimed (§70).
 
 insert into public.jemvoyage_settings (key, value, label, description, group_name, is_public)
 values (
@@ -25,4 +22,4 @@ on conflict (key) do update set
   label = excluded.label,
   description = excluded.description,
   group_name = excluded.group_name,
-  is_public = excluded.is_public;
+  is_public = excluded.is_public;;

@@ -288,6 +288,252 @@ export type JemvoyageNewsletterSubscriber = Timestamps & {
   unsubscribed_at: string | null;
 };
 
+// ── catalogue ────────────────────────────────────────────────────────────────
+
+export type Difficulty = "easy" | "moderate" | "challenging" | "strenuous";
+export type PriceBasis = "per_person" | "per_group" | "per_vehicle";
+
+export type JemvoyageDestination = Timestamps & Authored & {
+  id: string;
+  slug: string;
+  name: string;
+  region: string | null;
+  country: string;
+  summary: string | null;
+  description: string | null;
+  hero_media_id: string | null;
+  thumbnail_media_id: string | null;
+  map_media_id: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  best_months: number[];
+  travel_time_note: string | null;
+  is_featured: boolean;
+  status: PublishStatus;
+  display_order: number;
+  deleted_at: string | null;
+};
+
+export type JemvoyageTourCategory = Timestamps & {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  media_id: string | null;
+  is_active: boolean;
+  display_order: number;
+};
+
+export type JemvoyageTour = Timestamps & Authored & {
+  id: string;
+  slug: string;
+  title: string;
+  subtitle: string | null;
+  category_id: string | null;
+  primary_destination_id: string | null;
+  summary: string | null;
+  description: string | null;
+  duration_days: number;
+  duration_nights: number;
+  price_from: number | null;
+  currency: string;
+  price_basis: PriceBasis;
+  min_travellers: number;
+  max_travellers: number | null;
+  accommodation_summary: string | null;
+  transport_summary: string | null;
+  meals_summary: string | null;
+  inclusions: string[];
+  exclusions: string[];
+  difficulty: Difficulty | null;
+  best_months: number[];
+  primary_media_id: string | null;
+  thumbnail_media_id: string | null;
+  map_media_id: string | null;
+  social_media_id: string | null;
+  video_url: string | null;
+  is_featured: boolean;
+  is_private: boolean;
+  status: PublishStatus;
+  published_at: string | null;
+  display_order: number;
+  deleted_at: string | null;
+};
+
+export type JemvoyageTourItinerary = Timestamps & {
+  id: string;
+  tour_id: string;
+  day_number: number;
+  title: string;
+  description: string | null;
+  media_id: string | null;
+  destination_id: string | null;
+  overnight_location: string | null;
+  accommodation: string | null;
+  meals: string | null;
+  driving_time_minutes: number | null;
+  distance_km: number | null;
+};
+
+export type JemvoyageActivity = Timestamps & Authored & {
+  id: string;
+  slug: string;
+  name: string;
+  summary: string | null;
+  description: string | null;
+  category: string | null;
+  media_id: string | null;
+  duration_minutes: number | null;
+  difficulty: Difficulty | null;
+  base_price: number | null;
+  currency: string;
+  is_active: boolean;
+  display_order: number;
+  deleted_at: string | null;
+};
+
+// ── fleet ────────────────────────────────────────────────────────────────────
+
+export type VehicleStatus =
+  | "available" | "reserved" | "rented" | "on_safari" | "on_transfer"
+  | "maintenance" | "accident" | "inactive";
+
+export type DriveType = "self_drive" | "chauffeur";
+
+export type JemvoyageVehicleCategory = Timestamps & {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  media_id: string | null;
+  typical_seats: number | null;
+  is_four_wheel: boolean;
+  is_active: boolean;
+  display_order: number;
+};
+
+export type JemvoyageVehicle = Timestamps & Authored & {
+  id: string;
+  slug: string;
+  registration: string;
+  vin: string | null;
+  category_id: string | null;
+  make: string;
+  model: string;
+  year: number | null;
+  colour: string | null;
+  transmission: "manual" | "automatic";
+  fuel_type: "petrol" | "diesel" | "hybrid" | "electric";
+  seats: number;
+  luggage_capacity: number | null;
+  is_four_wheel: boolean;
+  has_gps: boolean;
+  current_mileage_km: number;
+  purchase_date: string | null;
+  purchase_value: number | null;
+  status: VehicleStatus;
+  home_location: string | null;
+  supports_self_drive: boolean;
+  supports_chauffeur: boolean;
+  primary_media_id: string | null;
+  description: string | null;
+  rental_terms: string | null;
+  is_published: boolean;
+  display_order: number;
+  deleted_at: string | null;
+};
+
+export type JemvoyageVehicleRate = Timestamps & Authored & {
+  id: string;
+  vehicle_id: string | null;
+  category_id: string | null;
+  drive_type: DriveType;
+  currency: string;
+  daily_rate: number | null;
+  weekly_rate: number | null;
+  monthly_rate: number | null;
+  daily_mileage_km: number | null;
+  excess_mileage_rate: number | null;
+  security_deposit: number | null;
+  driver_daily_fee: number | null;
+  valid_from: string | null;
+  valid_to: string | null;
+  is_active: boolean;
+};
+
+export type JemvoyageVehicleFeature = {
+  id: string;
+  slug: string;
+  name: string;
+  icon: string | null;
+  display_order: number;
+  created_at: string;
+};
+
+// ── engagement ───────────────────────────────────────────────────────────────
+
+export type JemvoyageReview = Timestamps & {
+  id: string;
+  customer_id: string | null;
+  booking_id: string | null;
+  rental_id: string | null;
+  tour_id: string | null;
+  vehicle_id: string | null;
+  driver_id: string | null;
+  guide_id: string | null;
+  destination_id: string | null;
+  author_name: string;
+  author_country: string | null;
+  title: string | null;
+  body: string;
+  rating_overall: number;
+  rating_vehicle: number | null;
+  rating_driver: number | null;
+  rating_guide: number | null;
+  rating_accommodation: number | null;
+  rating_tour: number | null;
+  rating_communication: number | null;
+  travelled_on: string | null;
+  status: "pending" | "approved" | "rejected" | "hidden";
+  moderated_by: string | null;
+  moderated_at: string | null;
+  moderation_notes: string | null;
+  response_body: string | null;
+  response_at: string | null;
+  is_featured: boolean;
+  deleted_at: string | null;
+};
+
+export type JemvoyageLead = Timestamps & Authored & {
+  id: string;
+  reference: string;
+  customer_id: string | null;
+  source_id: string | null;
+  full_name: string;
+  email: string | null;
+  phone: string | null;
+  country: string | null;
+  service_interest: string | null;
+  tour_id: string | null;
+  destination_id: string | null;
+  vehicle_id: string | null;
+  travel_start_date: string | null;
+  travel_end_date: string | null;
+  adults: number;
+  children: number;
+  budget_min: number | null;
+  budget_max: number | null;
+  currency: string;
+  message: string | null;
+  stage: string;
+  priority: string;
+  owner_id: string | null;
+  lost_reason: string | null;
+  next_action_at: string | null;
+  converted_at: string | null;
+  deleted_at: string | null;
+};
+
 // ── database ─────────────────────────────────────────────────────────────────
 
 export type Database = {
@@ -336,6 +582,66 @@ export type Database = {
       jemvoyage_newsletter_subscribers: Table<
         JemvoyageNewsletterSubscriber,
         "email"
+      >;
+
+      // catalogue
+      jemvoyage_destinations: Table<JemvoyageDestination, "slug" | "name">;
+      jemvoyage_tour_categories: Table<JemvoyageTourCategory, "slug" | "name">;
+      jemvoyage_tours: Table<JemvoyageTour, "slug" | "title">;
+      jemvoyage_tour_itineraries: Table<
+        JemvoyageTourItinerary,
+        "tour_id" | "day_number" | "title"
+      >;
+      jemvoyage_activities: Table<JemvoyageActivity, "slug" | "name">;
+      jemvoyage_tour_media: Table<
+        { tour_id: string; media_id: string; display_order: number; created_at: string },
+        "tour_id" | "media_id"
+      >;
+      jemvoyage_tour_destinations: Table<
+        { tour_id: string; destination_id: string; display_order: number },
+        "tour_id" | "destination_id"
+      >;
+      jemvoyage_destination_media: Table<
+        { destination_id: string; media_id: string; display_order: number; created_at: string },
+        "destination_id" | "media_id"
+      >;
+
+      // fleet
+      jemvoyage_vehicle_categories: Table<JemvoyageVehicleCategory, "slug" | "name">;
+      jemvoyage_vehicles: Table<
+        JemvoyageVehicle,
+        "slug" | "registration" | "make" | "model"
+      >;
+      jemvoyage_vehicle_rates: Table<JemvoyageVehicleRate>;
+      jemvoyage_vehicle_features: Table<JemvoyageVehicleFeature, "slug" | "name">;
+      jemvoyage_vehicle_images: Table<
+        {
+          id: string;
+          vehicle_id: string;
+          media_id: string;
+          angle: string | null;
+          display_order: number;
+          created_at: string;
+        },
+        "vehicle_id" | "media_id"
+      >;
+
+      // engagement
+      jemvoyage_reviews: Table<
+        JemvoyageReview,
+        "author_name" | "body" | "rating_overall"
+      >;
+      jemvoyage_leads: Table<JemvoyageLead, "full_name">;
+      jemvoyage_lead_sources: Table<
+        {
+          id: string;
+          slug: string;
+          name: string;
+          is_active: boolean;
+          display_order: number;
+          created_at: string;
+        },
+        "slug" | "name"
       >;
     };
     Views: Record<never, never>;

@@ -1,12 +1,6 @@
--- =============================================================================
 -- JEMVOYAGE LTD — 0005 · Storage buckets & object policies
--- =============================================================================
--- Every policy below is scoped with `bucket_id like 'jemvoyage-%'` (or an
--- explicit jemvoyage bucket list), so none of the 18 pre-existing buckets owned
--- by margaret_* / kida_* / mejasan_* / emiwama_* is affected in any way.
--- Storage policies are permissive and OR-combined, so adding these grants
--- nothing new on anyone else's buckets.
--- =============================================================================
+-- Every policy below is scoped with `bucket_id like 'jemvoyage-%'`, so none of
+-- the 18 pre-existing buckets owned by other apps is affected in any way.
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types) values
   ('jemvoyage-media',              'jemvoyage-media',              true,   52428800,
@@ -24,10 +18,9 @@ insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_typ
      array['application/pdf','image/jpeg','image/png','image/heic'])
 on conflict (id) do nothing;
 
-
 -- --- Public marketing buckets: world-readable, staff-writable ----------------
-drop policy if exists jemvoyage_storage_public_read on storage.objects;
-drop policy if exists jemvoyage_storage_media_write on storage.objects;
+drop policy if exists jemvoyage_storage_public_read  on storage.objects;
+drop policy if exists jemvoyage_storage_media_write  on storage.objects;
 
 create policy jemvoyage_storage_public_read on storage.objects
   for select to anon, authenticated
@@ -44,8 +37,7 @@ create policy jemvoyage_storage_media_write on storage.objects
     and public.jemvoyage_has_permission('media.manage')
   );
 
-
--- --- Private operational buckets: never anon, signed URLs only ---------------
+-- --- Private operational buckets: never anon, never public URLs --------------
 drop policy if exists jemvoyage_storage_inspections on storage.objects;
 create policy jemvoyage_storage_inspections on storage.objects
   for all to authenticated
@@ -58,10 +50,8 @@ create policy jemvoyage_storage_documents on storage.objects
   using (bucket_id = 'jemvoyage-documents' and public.jemvoyage_is_staff())
   with check (bucket_id = 'jemvoyage-documents' and public.jemvoyage_is_staff());
 
-
--- Customer documents: a customer may read and write only inside their own
--- uid-prefixed folder (`<auth.uid()>/passport.pdf`); staff holding
--- customers.view may read the whole bucket but never write it here.
+-- Customer documents: a customer may read and upload only under their own
+-- uid-prefixed folder; staff with customers.view may read everything.
 drop policy if exists jemvoyage_storage_customer_docs_own   on storage.objects;
 drop policy if exists jemvoyage_storage_customer_docs_staff on storage.objects;
 
@@ -78,4 +68,4 @@ create policy jemvoyage_storage_customer_docs_own on storage.objects
 
 create policy jemvoyage_storage_customer_docs_staff on storage.objects
   for select to authenticated
-  using (bucket_id = 'jemvoyage-customer-documents' and public.jemvoyage_has_permission('customers.view'));
+  using (bucket_id = 'jemvoyage-customer-documents' and public.jemvoyage_has_permission('customers.view'));;

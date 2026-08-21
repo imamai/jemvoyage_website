@@ -57,6 +57,9 @@ Verify alignment at any time with `npm run db:list`.
 | 20260821130615 | jemvoyage_finance | Corporate accounts, travel agents, commissions, invoices, payments, payment events, refunds, expenses |
 | 20260821130715 | jemvoyage_engagement_and_audit | Reviews, notification templates, notifications, audit log + triggers |
 | 20260821130918 | jemvoyage_fix_reference_defaults | Reference generation moved from column DEFAULT to SECURITY DEFINER trigger |
+| 20260821144906 | jemvoyage_demo_catalogue_seed | 10 destinations, 10 tour categories, 8 activities |
+| 20260821145111 | jemvoyage_demo_tours_seed | 12 tours + itinerary for the flagship |
+| 20260821145205 | jemvoyage_demo_fleet_seed | 7 vehicle categories, 10 vehicles, 13 rate cards, features |
 
 ## Design notes worth knowing
 
@@ -80,8 +83,29 @@ fails with 42501.
 only; rows arrive exclusively via the SECURITY DEFINER audit trigger, so history
 cannot be altered or erased through the API.
 
+## Regenerating these files
+
+`scripts/dump-migrations.mjs` rebuilds every file in this directory from
+`supabase_migrations.schema_migrations`, guaranteeing filenames and contents
+match what is actually applied. Point it at a persisted result of:
+
+```sql
+select version, name, array_to_string(statements, E';\n\n') || ';' as sql
+from supabase_migrations.schema_migrations
+where name like 'jemvoyage%' order by version;
+```
+
+## Demo data
+
+The three `demo_*` migrations seed illustrative catalogue and fleet content so
+the site renders fully in development. They invent **no** awards,
+certifications, partnerships or customer reviews (§62, §70) — vehicle
+registrations use an obvious `KXX` placeholder pattern and prices are indicative.
+`jemvoyage_reviews` is deliberately left empty.
+
 ## Still to build
 
-TypeScript types in `src/lib/db/types.ts` currently cover the 18 RBAC/CMS tables
-the site uses today. The remaining 64 tables need types added as each module's
-UI is built.
+TypeScript types in `src/lib/db/types.ts` cover the RBAC, CMS, catalogue, fleet,
+reviews and leads tables the public site uses. The operational tables (bookings,
+rentals, quotes, finance, transfers, suppliers) still need types added as each
+module's admin UI is built.

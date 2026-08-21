@@ -1,12 +1,5 @@
--- =============================================================================
--- JEMVOYAGE LTD — 0003 · Role & permission seed
--- =============================================================================
--- Idempotent: safe to re-run. Permission keys follow `resource.action`.
--- Every resource gets `.view` and `.manage`; sensitive operations get their own
--- discrete key so they can be granted without granting full management.
--- =============================================================================
+-- JEMVOYAGE LTD — 0003 · Role & permission seed (idempotent)
 
--- --- Roles -------------------------------------------------------------------
 insert into public.jemvoyage_roles (name, label, description, is_staff, is_system, display_order) values
   ('super_admin',        'Super Admin',        'Unrestricted access to every module and setting.',        true,  true,  10),
   ('ceo',                'CEO',                'Full visibility across the business; approves at board level.', true, true, 20),
@@ -31,14 +24,8 @@ on conflict (name) do update
       is_staff = excluded.is_staff,
       display_order = excluded.display_order;
 
-
--- --- Permissions -------------------------------------------------------------
--- Base: <resource>.view + <resource>.manage for every resource.
 insert into public.jemvoyage_permissions (key, resource, action, label)
-select r || '.' || a,
-       r,
-       a,
-       initcap(replace(r, '_', ' ')) || ' — ' || initcap(a)
+select r || '.' || a, r, a, initcap(replace(r, '_', ' ')) || ' — ' || initcap(a)
 from unnest(array[
   'users','customers','leads','quotes','bookings','rentals','tours','destinations',
   'activities','vehicles','fleet','drivers','guides','transfers','suppliers',
@@ -48,26 +35,20 @@ from unnest(array[
 cross join unnest(array['view','manage']) as a
 on conflict (key) do nothing;
 
--- Discrete high-consequence permissions.
 insert into public.jemvoyage_permissions (key, resource, action, label) values
-  ('quotes.approve',     'quotes',    'approve', 'Quotes — Approve before sending'),
-  ('bookings.approve',   'bookings',  'approve', 'Bookings — Confirm booking'),
-  ('bookings.cancel',    'bookings',  'cancel',  'Bookings — Cancel booking'),
-  ('payments.refund',    'payments',  'refund',  'Payments — Issue refund'),
+  ('quotes.approve',     'quotes',    'approve',  'Quotes — Approve before sending'),
+  ('bookings.approve',   'bookings',  'approve',  'Bookings — Confirm booking'),
+  ('bookings.cancel',    'bookings',  'cancel',   'Bookings — Cancel booking'),
+  ('payments.refund',    'payments',  'refund',   'Payments — Issue refund'),
   ('payments.reconcile', 'payments',  'reconcile','Payments — Reconcile transactions'),
-  ('pricing.manage',     'pricing',   'manage',  'Pricing — Edit rates and markup'),
-  ('discounts.manage',   'discounts', 'manage',  'Discounts — Apply and override discounts'),
-  ('cms.publish',        'cms',       'publish', 'CMS — Publish pages live'),
-  ('blog.publish',       'blog',      'publish', 'Blog — Publish articles live'),
-  ('reviews.moderate',   'reviews',   'moderate','Reviews — Approve or reject reviews'),
-  ('reports.export',     'reports',   'export',  'Reports — Export CSV / PDF'),
-  ('audit.view',         'audit',     'view',    'Audit — Read the audit log')
+  ('pricing.manage',     'pricing',   'manage',   'Pricing — Edit rates and markup'),
+  ('discounts.manage',   'discounts', 'manage',   'Discounts — Apply and override discounts'),
+  ('cms.publish',        'cms',       'publish',  'CMS — Publish pages live'),
+  ('blog.publish',       'blog',      'publish',  'Blog — Publish articles live'),
+  ('reviews.moderate',   'reviews',   'moderate', 'Reviews — Approve or reject reviews'),
+  ('reports.export',     'reports',   'export',   'Reports — Export CSV / PDF'),
+  ('audit.view',         'audit',     'view',     'Audit — Read the audit log')
 on conflict (key) do nothing;
-
-
--- --- Role → permission mapping ----------------------------------------------
--- super_admin is intentionally NOT mapped: jemvoyage_has_permission() short
--- circuits on jemvoyage_is_super_admin(), so it holds every permission implicitly.
 
 do $$
 declare
@@ -118,10 +99,10 @@ declare
     'supplier',           to_jsonb(array['suppliers.view']),
     'customer',           to_jsonb(array[]::text[])
   );
-  v_role  text;
-  v_keys  jsonb;
-  v_key   text;
-  v_rid   uuid;
+  v_role text;
+  v_keys jsonb;
+  v_key  text;
+  v_rid  uuid;
 begin
   for v_role, v_keys in select * from jsonb_each(v_map) loop
     select id into v_rid from public.jemvoyage_roles where name = v_role;
@@ -146,4 +127,4 @@ begin
     end loop;
   end loop;
 end;
-$$;
+$$;;

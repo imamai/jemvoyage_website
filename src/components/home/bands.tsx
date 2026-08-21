@@ -150,6 +150,57 @@ export function CtaBand({ section }: { section: HomepageSectionWithMedia }) {
   );
 }
 
+/**
+ * Generic grid band: CMS-driven heading and CTA, arbitrary cards inside.
+ *
+ * Renders nothing when it has no cards, so a band whose catalogue is empty
+ * disappears rather than showing an empty shell.
+ */
+export function CardGridBand({
+  section,
+  tone = "canvas",
+  columns = 3,
+  children,
+  count,
+}: {
+  section: HomepageSectionWithMedia;
+  tone?: "canvas" | "surface" | "sunken";
+  columns?: 2 | 3;
+  children: React.ReactNode;
+  count: number;
+}) {
+  if (count === 0) return null;
+
+  return (
+    <Section tone={tone}>
+      <Container>
+        <SectionHeader
+          eyebrow={section.eyebrow}
+          heading={section.heading}
+          subheading={section.subheading}
+          action={
+            section.cta_label && section.cta_url ? (
+              <ButtonLink href={section.cta_url} variant="outline">
+                {section.cta_label}
+              </ButtonLink>
+            ) : undefined
+          }
+        />
+        <div
+          className={cn(
+            "mt-12 grid gap-8",
+            columns === 2
+              ? "sm:grid-cols-2"
+              : "sm:grid-cols-2 lg:grid-cols-3",
+          )}
+        >
+          {children}
+        </div>
+      </Container>
+    </Section>
+  );
+}
+
 /** FAQ accordion, rendered with native details/summary for zero-JS a11y. */
 export function FaqBand({
   items,

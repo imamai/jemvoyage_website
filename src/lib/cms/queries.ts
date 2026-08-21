@@ -24,7 +24,7 @@ import type {
  * both need the primary menu share a single query per request.
  */
 
-const MEDIA_COLUMNS =
+export const MEDIA_COLUMNS =
   "id, storage_bucket, file_path, external_url, alt_text, title, focal_x, focal_y, blur_data_url, is_placeholder, category";
 
 export type MediaRef = Pick<

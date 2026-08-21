@@ -1,0 +1,192 @@
+@import "tailwindcss";
+
+/* ============================================================================
+   JEMVOYAGE DESIGN SYSTEM
+   ----------------------------------------------------------------------------
+   Every colour, radius, shadow and type step is a token. Components reference
+   tokens only — no literal hex values below this block, anywhere in the app.
+
+   The palette is drawn from the East African landscape rather than from generic
+   travel-template blues: deep acacia-shade green as the brand, warm savanna
+   gold as the accent, sun-bleached sand and ivory as ground, terracotta for
+   emphasis. Warm neutrals throughout, so photography sits on the page instead
+   of fighting it.
+   ========================================================================== */
+
+@theme {
+  /* ── Brand: deep acacia shade ─────────────────────────────────────────── */
+  --color-brand-50:  #EEF3F1;
+  --color-brand-100: #D3E0DB;
+  --color-brand-200: #A7C1B7;
+  --color-brand-300: #7BA294;
+  --color-brand-400: #4F8371;
+  --color-brand-500: #2F6353;
+  --color-brand-600: #1E3A32;
+  --color-brand-700: #172E27;
+  --color-brand-800: #10211C;
+  --color-brand-900: #0A1512;
+
+  /* ── Accent: savanna gold ─────────────────────────────────────────────── */
+  --color-gold-50:  #FBF6EC;
+  --color-gold-100: #F4E8CF;
+  --color-gold-200: #E7D0A1;
+  --color-gold-300: #D9B772;
+  --color-gold-400: #CC9F4F;
+  --color-gold-500: #C08A3E;
+  --color-gold-600: #A06E2F;
+  --color-gold-700: #7C5324;
+  --color-gold-800: #573A19;
+  --color-gold-900: #33220F;
+
+  /* ── Emphasis: terracotta ─────────────────────────────────────────────── */
+  --color-clay-100: #F5DDD3;
+  --color-clay-300: #D99B7E;
+  --color-clay-500: #A8552F;
+  --color-clay-700: #7A3D22;
+
+  /* ── Warm neutrals ────────────────────────────────────────────────────── */
+  --color-sand-50:  #FBF9F5;
+  --color-sand-100: #F5F1E9;
+  --color-sand-200: #EFE7D9;
+  --color-sand-300: #DCCFB8;
+  --color-sand-400: #BFB097;
+  --color-sand-500: #9A8C76;
+  --color-sand-600: #6B6357;
+  --color-sand-700: #4A443B;
+  --color-sand-800: #2C2823;
+  --color-sand-900: #171512;
+
+  /* ── Status ───────────────────────────────────────────────────────────── */
+  --color-success: #2E7D5B;
+  --color-success-soft: #E3F1EA;
+  --color-warning: #B8860B;
+  --color-warning-soft: #FBF1DA;
+  --color-danger: #A32E2E;
+  --color-danger-soft: #F7E4E4;
+  --color-info: #2C5F82;
+  --color-info-soft: #E2EEF5;
+
+  /* ── Semantic surface roles ───────────────────────────────────────────── */
+  --color-canvas: var(--color-sand-50);
+  --color-surface: #FFFFFF;
+  --color-surface-sunken: var(--color-sand-100);
+  --color-surface-inverse: var(--color-brand-800);
+  --color-border: var(--color-sand-300);
+  --color-border-strong: var(--color-sand-400);
+  --color-fg: var(--color-sand-900);
+  --color-fg-muted: var(--color-sand-600);
+  --color-fg-inverse: var(--color-sand-50);
+
+  /* ── Typography ───────────────────────────────────────────────────────── */
+  --font-display: var(--font-fraunces), "Iowan Old Style", Georgia, serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+  --text-eyebrow: 0.75rem;
+  --text-eyebrow--line-height: 1rem;
+  --text-eyebrow--letter-spacing: 0.14em;
+  --text-eyebrow--font-weight: 600;
+
+  --text-display: clamp(2.75rem, 6vw, 5rem);
+  --text-display--line-height: 1.02;
+  --text-display--letter-spacing: -0.03em;
+
+  --text-h1: clamp(2.25rem, 4.5vw, 3.5rem);
+  --text-h1--line-height: 1.08;
+  --text-h1--letter-spacing: -0.025em;
+
+  --text-h2: clamp(1.75rem, 3vw, 2.5rem);
+  --text-h2--line-height: 1.15;
+  --text-h2--letter-spacing: -0.02em;
+
+  --text-h3: clamp(1.25rem, 2vw, 1.5rem);
+  --text-h3--line-height: 1.25;
+  --text-h3--letter-spacing: -0.01em;
+
+  --text-lead: 1.125rem;
+  --text-lead--line-height: 1.7;
+
+  /* ── Radius, shadow, motion ───────────────────────────────────────────── */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 16px;
+
+  --shadow-subtle: 0 1px 2px rgb(23 21 18 / 0.04), 0 1px 3px rgb(23 21 18 / 0.06);
+  --shadow-raised: 0 2px 4px rgb(23 21 18 / 0.04), 0 8px 24px rgb(23 21 18 / 0.08);
+  --shadow-lifted: 0 4px 8px rgb(23 21 18 / 0.05), 0 16px 48px rgb(23 21 18 / 0.12);
+
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* ── Aspect ratios (§46) ──────────────────────────────────────────────── */
+  --aspect-hero: 16 / 9;
+  --aspect-card: 4 / 3;
+  --aspect-portrait: 3 / 4;
+  --aspect-wide: 21 / 9;
+}
+
+/* ============================================================================
+   Base
+   ========================================================================== */
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+    font-feature-settings: "kern", "liga", "calt";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    color: var(--color-brand-800);
+  }
+
+  /* Visible, branded focus ring — never remove the outline without a
+     replacement (WCAG 2.4.7). */
+  :focus-visible {
+    outline: 2px solid var(--color-gold-500);
+    outline-offset: 2px;
+    border-radius: var(--radius-xs);
+  }
+
+  ::selection {
+    background-color: var(--color-gold-200);
+    color: var(--color-brand-900);
+  }
+}
+
+@utility container-page {
+  margin-inline: auto;
+  width: 100%;
+  max-width: 80rem;
+  padding-inline: 1.25rem;
+
+  @media (width >= 48rem) {
+    padding-inline: 2rem;
+  }
+  @media (width >= 80rem) {
+    padding-inline: 2.5rem;
+  }
+}

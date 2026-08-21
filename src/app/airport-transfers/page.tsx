@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 import { getMediaByIds } from "@/lib/cms/queries";
-import { createClient } from "@/lib/supabase/server";
+import { createStaticClient } from "@/lib/supabase/static";
 import { ServicePage } from "@/components/site/service-page";
 import { Container, Section, SectionHeader } from "@/components/ui/section";
 
@@ -36,7 +36,7 @@ const AIRPORTS = [
 ];
 
 export default async function AirportTransfersPage() {
-  const supabase = await createClient();
+  const supabase = createStaticClient();
   const { data } = await supabase
     .from("jemvoyage_media")
     .select("id")

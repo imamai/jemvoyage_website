@@ -2,7 +2,6 @@ import "server-only";
 
 import { cache } from "react";
 
-import { createClient } from "@/lib/supabase/server";
 import { createStaticClient } from "@/lib/supabase/static";
 import { getMediaByIds, MEDIA_COLUMNS, type MediaRef } from "@/lib/cms/queries";
 import type {
@@ -32,7 +31,7 @@ async function decorateVehicles(
   rows: JemvoyageVehicle[],
 ): Promise<VehicleWithMedia[]> {
   if (rows.length === 0) return [];
-  const supabase = await createClient();
+  const supabase = createStaticClient();
 
   const [media, categories, rates] = await Promise.all([
     getMediaByIds(rows.map((v) => v.primary_media_id)),
@@ -86,7 +85,7 @@ export const getVehicles = cache(
     categorySlug?: string;
     driveType?: DriveType;
   } = {}): Promise<VehicleWithMedia[]> => {
-    const supabase = await createClient();
+    const supabase = createStaticClient();
 
     let query = supabase
       .from("jemvoyage_vehicles")
@@ -116,7 +115,7 @@ export const getVehicles = cache(
 
 export const getVehicleBySlug = cache(
   async (slug: string): Promise<VehicleWithMedia | null> => {
-    const supabase = await createClient();
+    const supabase = createStaticClient();
     const { data } = await supabase
       .from("jemvoyage_vehicles")
       .select("*")

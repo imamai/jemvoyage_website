@@ -1,36 +1,27 @@
 /**
- * Typed surface of the Jemvoyage schema inside the shared `edos_websites`
- * project.
+ * The Jemvoyage database surface.
  *
- * Hand-authored rather than generated on purpose. `supabase gen types` would
- * emit all ~134 tables in this database, including margaret_*, kida_*,
- * mejasan_* and emiwama_*, which would let application code — and the
- * service-role client in particular — reach another app's data with full
- * type-checker blessing. Declaring only jemvoyage_* tables turns that class of
- * mistake into a compile error.
+ * Row/Insert/Update shapes come from `database.types.ts`, which is generated
+ * from the live schema and filtered to the jemvoyage_ namespace — so they never
+ * drift from the migrations, and the other four applications sharing
+ * `edos_websites` remain unreachable to the type checker.
  *
- * Keep in step with supabase/migrations/*.sql.
+ * This file adds the things a generator cannot infer: the string unions behind
+ * CHECK constraints, and readable aliases for the row types.
+ *
+ * Regenerate with:
+ *   node scripts/filter-database-types.mjs <supabase-generated-types.txt>
  */
 
-/** Row shape plus the columns that are mandatory on insert. */
-type Table<Row, RequiredOnInsert extends keyof Row = never> = {
-  Row: Row;
-  Insert: Partial<Row> & Pick<Row, RequiredOnInsert>;
-  Update: Partial<Row>;
-  Relationships: [];
-};
+import type { Database, Tables } from "@/lib/db/database.types";
 
-type Timestamps = {
-  created_at: string;
-  updated_at: string;
-};
+export type { Database, Json } from "@/lib/db/database.types";
+export type { Tables, InsertDto, UpdateDto } from "@/lib/db/database.types";
 
-type Authored = {
-  created_by: string | null;
-  updated_by: string | null;
-};
-
-// ── domain unions ────────────────────────────────────────────────────────────
+// ── unions behind CHECK constraints ──────────────────────────────────────────
+// Postgres CHECK constraints are invisible to the type generator, so these are
+// declared by hand. They exist to constrain *inputs* (function arguments,
+// form values); row reads stay as `string`, matching what the database returns.
 
 export type MediaCategory =
   | "general" | "hero" | "tours" | "safaris" | "destinations" | "vehicles"
@@ -44,6 +35,58 @@ export type OverlayStyle =
 
 export type OfferAudience =
   | "all" | "tours" | "safaris" | "rentals" | "transfers" | "corporate";
+
+export type Difficulty = "easy" | "moderate" | "challenging" | "strenuous";
+
+export type PriceBasis = "per_person" | "per_group" | "per_vehicle";
+
+export type DriveType = "self_drive" | "chauffeur";
+
+export type VehicleStatus =
+  | "available" | "reserved" | "rented" | "on_safari" | "on_transfer"
+  | "maintenance" | "accident" | "inactive";
+
+export type ServiceType =
+  | "tour" | "safari" | "car_hire" | "chauffeur" | "transfer" | "corporate"
+  | "custom";
+
+export type LeadStage =
+  | "new" | "contacted" | "qualified" | "planning" | "quote_sent"
+  | "negotiation" | "deposit_requested" | "confirmed" | "travelling"
+  | "completed" | "repeat" | "lost";
+
+export type QuoteStatus =
+  | "draft" | "pending_approval" | "approved" | "sent" | "accepted"
+  | "rejected" | "expired" | "converted" | "cancelled";
+
+export type BookingStatus =
+  | "pending" | "confirmed" | "in_progress" | "completed" | "cancelled"
+  | "no_show";
+
+export type PaymentStatusLabel =
+  | "unpaid" | "deposit_paid" | "partially_paid" | "paid" | "refunded"
+  | "partially_refunded";
+
+export type RentalStatus =
+  | "reserved" | "confirmed" | "active" | "overdue" | "returned" | "completed"
+  | "cancelled";
+
+export type TransferStatus =
+  | "scheduled" | "driver_assigned" | "en_route" | "arrived"
+  | "passenger_picked" | "completed" | "cancelled" | "no_show";
+
+export type PaymentMethod =
+  | "mpesa" | "card" | "bank_transfer" | "cash" | "cheque" | "credit_account";
+
+export type PaymentState =
+  | "pending" | "processing" | "succeeded" | "failed" | "cancelled"
+  | "refunded" | "partially_refunded";
+
+export type InvoiceStatus =
+  | "draft" | "issued" | "sent" | "partially_paid" | "paid" | "overdue"
+  | "cancelled" | "void";
+
+export type ReviewStatus = "pending" | "approved" | "rejected" | "hidden";
 
 export type JemvoyageRoleName =
   | "super_admin" | "ceo" | "general_manager" | "sales_manager" | "sales_agent"
@@ -59,626 +102,105 @@ export type JemvoyageStorageBucket =
   | "jemvoyage-documents"
   | "jemvoyage-customer-documents";
 
-// ── row shapes ───────────────────────────────────────────────────────────────
+// ── row aliases ──────────────────────────────────────────────────────────────
 
-export type JemvoyageUser = Timestamps & Authored & {
-  id: string;
-  full_name: string;
-  email: string | null;
-  phone: string | null;
-  avatar_media_id: string | null;
-  job_title: string | null;
-  bio: string | null;
-  locale: string;
-  timezone: string;
-  is_active: boolean;
-  last_seen_at: string | null;
-  deleted_at: string | null;
-};
+// identity & access
+export type JemvoyageUser = Tables<"jemvoyage_users">;
+export type JemvoyageRole = Tables<"jemvoyage_roles">;
+export type JemvoyagePermission = Tables<"jemvoyage_permissions">;
 
-export type JemvoyageRole = Timestamps & {
-  id: string;
-  name: JemvoyageRoleName;
-  label: string;
-  description: string | null;
-  is_staff: boolean;
-  is_system: boolean;
-  display_order: number;
-};
+// media & CMS
+export type JemvoyageMedia = Tables<"jemvoyage_media">;
+export type JemvoyageSetting = Tables<"jemvoyage_settings">;
+export type JemvoyageSeoMetadata = Tables<"jemvoyage_seo_metadata">;
+export type JemvoyageCmsPage = Tables<"jemvoyage_cms_pages">;
+export type JemvoyageHeroSlide = Tables<"jemvoyage_hero_slides">;
+export type JemvoyageHomepageSection = Tables<"jemvoyage_homepage_sections">;
+export type JemvoyageMenu = Tables<"jemvoyage_menus">;
+export type JemvoyageMenuItem = Tables<"jemvoyage_menu_items">;
+export type JemvoyageBlogCategory = Tables<"jemvoyage_blog_categories">;
+export type JemvoyageBlogPost = Tables<"jemvoyage_blog_posts">;
+export type JemvoyageFaq = Tables<"jemvoyage_faqs">;
+export type JemvoyageOffer = Tables<"jemvoyage_offers">;
+export type JemvoyageNewsletterSubscriber =
+  Tables<"jemvoyage_newsletter_subscribers">;
 
-export type JemvoyagePermission = {
-  id: string;
-  key: string;
-  resource: string;
-  action: string;
-  label: string;
-  description: string | null;
-  created_at: string;
-};
+// catalogue
+export type JemvoyageDestination = Tables<"jemvoyage_destinations">;
+export type JemvoyageAttraction = Tables<"jemvoyage_attractions">;
+export type JemvoyageActivity = Tables<"jemvoyage_activities">;
+export type JemvoyageTourCategory = Tables<"jemvoyage_tour_categories">;
+export type JemvoyageTour = Tables<"jemvoyage_tours">;
+export type JemvoyageTourItinerary = Tables<"jemvoyage_tour_itineraries">;
+export type JemvoyageTourAvailability = Tables<"jemvoyage_tour_availability">;
 
-export type JemvoyageMedia = Timestamps & {
-  id: string;
-  storage_bucket: JemvoyageStorageBucket;
-  /** Null for development placeholders, which carry `external_url` instead. */
-  file_path: string | null;
-  file_name: string | null;
-  /** Licensed external URL for placeholders. Ignored once `file_path` is set. */
-  external_url: string | null;
-  title: string | null;
-  alt_text: string | null;
-  caption: string | null;
-  description: string | null;
-  category: MediaCategory;
-  tags: string[];
-  width: number | null;
-  height: number | null;
-  file_size: number | null;
-  mime_type: string | null;
-  focal_x: number;
-  focal_y: number;
-  blur_data_url: string | null;
-  credit: string | null;
-  source_url: string | null;
-  license: string | null;
-  is_placeholder: boolean;
-  is_active: boolean;
-  uploaded_by: string | null;
-  deleted_at: string | null;
-};
+// fleet
+export type JemvoyageVehicleCategory = Tables<"jemvoyage_vehicle_categories">;
+export type JemvoyageVehicle = Tables<"jemvoyage_vehicles">;
+export type JemvoyageVehicleImage = Tables<"jemvoyage_vehicle_images">;
+export type JemvoyageVehicleFeature = Tables<"jemvoyage_vehicle_features">;
+export type JemvoyageVehicleRate = Tables<"jemvoyage_vehicle_rates">;
+export type JemvoyageVehicleAvailability =
+  Tables<"jemvoyage_vehicle_availability">;
+export type JemvoyageMaintenance = Tables<"jemvoyage_maintenance">;
+export type JemvoyageFuelRecord = Tables<"jemvoyage_fuel_records">;
+export type JemvoyageInsurance = Tables<"jemvoyage_insurance">;
+export type JemvoyageVehicleDocument = Tables<"jemvoyage_vehicle_documents">;
 
-export type JemvoyageSetting = {
-  key: string;
-  value: unknown;
-  label: string | null;
-  description: string | null;
-  group_name: string;
-  is_public: boolean;
-  updated_at: string;
-  updated_by: string | null;
-};
+// CRM
+export type JemvoyageCustomer = Tables<"jemvoyage_customers">;
+export type JemvoyageCustomerPreferences =
+  Tables<"jemvoyage_customer_preferences">;
+export type JemvoyageLeadSource = Tables<"jemvoyage_lead_sources">;
+export type JemvoyageLead = Tables<"jemvoyage_leads">;
+export type JemvoyageSalesActivity = Tables<"jemvoyage_sales_activities">;
+export type JemvoyageCommunication = Tables<"jemvoyage_communications">;
 
-export type JemvoyageSeoMetadata = Timestamps & Authored & {
-  id: string;
-  entity_type: string;
-  entity_id: string | null;
-  path: string | null;
-  seo_title: string | null;
-  meta_description: string | null;
-  canonical_url: string | null;
-  og_media_id: string | null;
-  og_title: string | null;
-  og_description: string | null;
-  robots: string;
-  schema_type: string | null;
-  schema_json: unknown;
-  keywords: string[];
-};
+// people & suppliers
+export type JemvoyageDriver = Tables<"jemvoyage_drivers">;
+export type JemvoyageGuide = Tables<"jemvoyage_guides">;
+export type JemvoyageDriverAssignment = Tables<"jemvoyage_driver_assignments">;
+export type JemvoyageSupplier = Tables<"jemvoyage_suppliers">;
+export type JemvoyageSupplierRate = Tables<"jemvoyage_supplier_rates">;
+export type JemvoyageSupplierContract = Tables<"jemvoyage_supplier_contracts">;
 
-export type JemvoyageCmsPage = Timestamps & Authored & {
-  id: string;
-  slug: string;
-  title: string;
-  subtitle: string | null;
-  body: unknown;
-  hero_media_id: string | null;
-  status: PublishStatus;
-  published_at: string | null;
-  display_order: number;
-  deleted_at: string | null;
-};
+// commerce
+export type JemvoyageQuote = Tables<"jemvoyage_quotes">;
+export type JemvoyageQuoteItem = Tables<"jemvoyage_quote_items">;
+export type JemvoyageQuoteVersion = Tables<"jemvoyage_quote_versions">;
+export type JemvoyageBooking = Tables<"jemvoyage_bookings">;
+export type JemvoyageBookingItem = Tables<"jemvoyage_booking_items">;
+export type JemvoyageTraveller = Tables<"jemvoyage_travellers">;
+export type JemvoyageTransfer = Tables<"jemvoyage_transfers">;
 
-export type JemvoyageHeroSlide = Timestamps & Authored & {
-  id: string;
-  placement: string;
-  eyebrow: string | null;
-  headline: string;
-  subheadline: string | null;
-  desktop_media_id: string | null;
-  mobile_media_id: string | null;
-  video_url: string | null;
-  overlay_style: OverlayStyle;
-  overlay_opacity: number;
-  cta_label: string | null;
-  cta_url: string | null;
-  secondary_cta_label: string | null;
-  secondary_cta_url: string | null;
-  is_active: boolean;
-  display_order: number;
-  starts_at: string | null;
-  ends_at: string | null;
-};
+// rentals
+export type JemvoyageRental = Tables<"jemvoyage_rentals">;
+export type JemvoyageRentalAgreement = Tables<"jemvoyage_rental_agreements">;
+export type JemvoyageRentalDeposit = Tables<"jemvoyage_rental_deposits">;
+export type JemvoyageRentalExtension = Tables<"jemvoyage_rental_extensions">;
+export type JemvoyageRentalInspection = Tables<"jemvoyage_rental_inspections">;
+export type JemvoyageRentalDamageReport =
+  Tables<"jemvoyage_rental_damage_reports">;
+export type JemvoyageRentalCharge = Tables<"jemvoyage_rental_charges">;
 
-export type JemvoyageHomepageSection = Timestamps & {
-  id: string;
-  section_key: string;
-  eyebrow: string | null;
-  heading: string;
-  subheading: string | null;
-  body: string | null;
-  media_id: string | null;
-  cta_label: string | null;
-  cta_url: string | null;
-  layout: string;
-  item_limit: number;
-  is_active: boolean;
-  display_order: number;
-  updated_by: string | null;
-};
+// finance
+export type JemvoyageCorporateAccount = Tables<"jemvoyage_corporate_accounts">;
+export type JemvoyageCorporateUser = Tables<"jemvoyage_corporate_users">;
+export type JemvoyageTravelAgent = Tables<"jemvoyage_travel_agents">;
+export type JemvoyageAgentCommission = Tables<"jemvoyage_agent_commissions">;
+export type JemvoyageInvoice = Tables<"jemvoyage_invoices">;
+export type JemvoyageInvoiceItem = Tables<"jemvoyage_invoice_items">;
+export type JemvoyagePayment = Tables<"jemvoyage_payments">;
+export type JemvoyagePaymentEvent = Tables<"jemvoyage_payment_events">;
+export type JemvoyageRefund = Tables<"jemvoyage_refunds">;
+export type JemvoyageExpense = Tables<"jemvoyage_expenses">;
 
-export type JemvoyageMenu = Timestamps & {
-  id: string;
-  key: string;
-  label: string;
-};
+// engagement
+export type JemvoyageReview = Tables<"jemvoyage_reviews">;
+export type JemvoyageNotification = Tables<"jemvoyage_notifications">;
+export type JemvoyageNotificationTemplate =
+  Tables<"jemvoyage_notification_templates">;
+export type JemvoyageAuditLog = Tables<"jemvoyage_audit_logs">;
 
-export type JemvoyageMenuItem = Timestamps & {
-  id: string;
-  menu_id: string;
-  parent_id: string | null;
-  label: string;
-  url: string;
-  description: string | null;
-  icon: string | null;
-  is_active: boolean;
-  opens_new_tab: boolean;
-  display_order: number;
-};
-
-export type JemvoyageBlogCategory = Timestamps & {
-  id: string;
-  slug: string;
-  name: string;
-  description: string | null;
-  display_order: number;
-};
-
-export type JemvoyageBlogPost = Timestamps & Authored & {
-  id: string;
-  slug: string;
-  title: string;
-  excerpt: string | null;
-  body: string | null;
-  category_id: string | null;
-  featured_media_id: string | null;
-  social_media_id: string | null;
-  author_id: string | null;
-  reading_minutes: number | null;
-  status: PublishStatus;
-  is_featured: boolean;
-  published_at: string | null;
-  deleted_at: string | null;
-};
-
-export type JemvoyageFaq = Timestamps & {
-  id: string;
-  question: string;
-  answer: string;
-  category: string;
-  is_active: boolean;
-  display_order: number;
-  updated_by: string | null;
-};
-
-export type JemvoyageOffer = Timestamps & Authored & {
-  id: string;
-  slug: string;
-  title: string;
-  summary: string | null;
-  body: string | null;
-  media_id: string | null;
-  discount_type: "percent" | "fixed" | null;
-  discount_value: number | null;
-  promo_code: string | null;
-  applies_to: OfferAudience;
-  starts_at: string | null;
-  ends_at: string | null;
-  terms: string | null;
-  is_active: boolean;
-  display_order: number;
-};
-
-export type JemvoyageNewsletterSubscriber = Timestamps & {
-  id: string;
-  email: string;
-  full_name: string | null;
-  source: string;
-  segments: string[];
-  is_confirmed: boolean;
-  confirmed_at: string | null;
-  unsubscribed_at: string | null;
-};
-
-// ── catalogue ────────────────────────────────────────────────────────────────
-
-export type Difficulty = "easy" | "moderate" | "challenging" | "strenuous";
-export type PriceBasis = "per_person" | "per_group" | "per_vehicle";
-
-export type JemvoyageDestination = Timestamps & Authored & {
-  id: string;
-  slug: string;
-  name: string;
-  region: string | null;
-  country: string;
-  summary: string | null;
-  description: string | null;
-  hero_media_id: string | null;
-  thumbnail_media_id: string | null;
-  map_media_id: string | null;
-  latitude: number | null;
-  longitude: number | null;
-  best_months: number[];
-  travel_time_note: string | null;
-  is_featured: boolean;
-  status: PublishStatus;
-  display_order: number;
-  deleted_at: string | null;
-};
-
-export type JemvoyageTourCategory = Timestamps & {
-  id: string;
-  slug: string;
-  name: string;
-  description: string | null;
-  media_id: string | null;
-  is_active: boolean;
-  display_order: number;
-};
-
-export type JemvoyageTour = Timestamps & Authored & {
-  id: string;
-  slug: string;
-  title: string;
-  subtitle: string | null;
-  category_id: string | null;
-  primary_destination_id: string | null;
-  summary: string | null;
-  description: string | null;
-  duration_days: number;
-  duration_nights: number;
-  price_from: number | null;
-  currency: string;
-  price_basis: PriceBasis;
-  min_travellers: number;
-  max_travellers: number | null;
-  accommodation_summary: string | null;
-  transport_summary: string | null;
-  meals_summary: string | null;
-  inclusions: string[];
-  exclusions: string[];
-  difficulty: Difficulty | null;
-  best_months: number[];
-  primary_media_id: string | null;
-  thumbnail_media_id: string | null;
-  map_media_id: string | null;
-  social_media_id: string | null;
-  video_url: string | null;
-  is_featured: boolean;
-  is_private: boolean;
-  status: PublishStatus;
-  published_at: string | null;
-  display_order: number;
-  deleted_at: string | null;
-};
-
-export type JemvoyageTourItinerary = Timestamps & {
-  id: string;
-  tour_id: string;
-  day_number: number;
-  title: string;
-  description: string | null;
-  media_id: string | null;
-  destination_id: string | null;
-  overnight_location: string | null;
-  accommodation: string | null;
-  meals: string | null;
-  driving_time_minutes: number | null;
-  distance_km: number | null;
-};
-
-export type JemvoyageActivity = Timestamps & Authored & {
-  id: string;
-  slug: string;
-  name: string;
-  summary: string | null;
-  description: string | null;
-  category: string | null;
-  media_id: string | null;
-  duration_minutes: number | null;
-  difficulty: Difficulty | null;
-  base_price: number | null;
-  currency: string;
-  is_active: boolean;
-  display_order: number;
-  deleted_at: string | null;
-};
-
-// ── fleet ────────────────────────────────────────────────────────────────────
-
-export type VehicleStatus =
-  | "available" | "reserved" | "rented" | "on_safari" | "on_transfer"
-  | "maintenance" | "accident" | "inactive";
-
-export type DriveType = "self_drive" | "chauffeur";
-
-export type JemvoyageVehicleCategory = Timestamps & {
-  id: string;
-  slug: string;
-  name: string;
-  description: string | null;
-  media_id: string | null;
-  typical_seats: number | null;
-  is_four_wheel: boolean;
-  is_active: boolean;
-  display_order: number;
-};
-
-export type JemvoyageVehicle = Timestamps & Authored & {
-  id: string;
-  slug: string;
-  registration: string;
-  vin: string | null;
-  category_id: string | null;
-  make: string;
-  model: string;
-  year: number | null;
-  colour: string | null;
-  transmission: "manual" | "automatic";
-  fuel_type: "petrol" | "diesel" | "hybrid" | "electric";
-  seats: number;
-  luggage_capacity: number | null;
-  is_four_wheel: boolean;
-  has_gps: boolean;
-  current_mileage_km: number;
-  purchase_date: string | null;
-  purchase_value: number | null;
-  status: VehicleStatus;
-  home_location: string | null;
-  supports_self_drive: boolean;
-  supports_chauffeur: boolean;
-  primary_media_id: string | null;
-  description: string | null;
-  rental_terms: string | null;
-  is_published: boolean;
-  display_order: number;
-  deleted_at: string | null;
-};
-
-export type JemvoyageVehicleRate = Timestamps & Authored & {
-  id: string;
-  vehicle_id: string | null;
-  category_id: string | null;
-  drive_type: DriveType;
-  currency: string;
-  daily_rate: number | null;
-  weekly_rate: number | null;
-  monthly_rate: number | null;
-  daily_mileage_km: number | null;
-  excess_mileage_rate: number | null;
-  security_deposit: number | null;
-  driver_daily_fee: number | null;
-  valid_from: string | null;
-  valid_to: string | null;
-  is_active: boolean;
-};
-
-export type JemvoyageVehicleFeature = {
-  id: string;
-  slug: string;
-  name: string;
-  icon: string | null;
-  display_order: number;
-  created_at: string;
-};
-
-// ── engagement ───────────────────────────────────────────────────────────────
-
-export type JemvoyageReview = Timestamps & {
-  id: string;
-  customer_id: string | null;
-  booking_id: string | null;
-  rental_id: string | null;
-  tour_id: string | null;
-  vehicle_id: string | null;
-  driver_id: string | null;
-  guide_id: string | null;
-  destination_id: string | null;
-  author_name: string;
-  author_country: string | null;
-  title: string | null;
-  body: string;
-  rating_overall: number;
-  rating_vehicle: number | null;
-  rating_driver: number | null;
-  rating_guide: number | null;
-  rating_accommodation: number | null;
-  rating_tour: number | null;
-  rating_communication: number | null;
-  travelled_on: string | null;
-  status: "pending" | "approved" | "rejected" | "hidden";
-  moderated_by: string | null;
-  moderated_at: string | null;
-  moderation_notes: string | null;
-  response_body: string | null;
-  response_at: string | null;
-  is_featured: boolean;
-  deleted_at: string | null;
-};
-
-export type JemvoyageLead = Timestamps & Authored & {
-  id: string;
-  reference: string;
-  customer_id: string | null;
-  source_id: string | null;
-  full_name: string;
-  email: string | null;
-  phone: string | null;
-  country: string | null;
-  service_interest: string | null;
-  tour_id: string | null;
-  destination_id: string | null;
-  vehicle_id: string | null;
-  travel_start_date: string | null;
-  travel_end_date: string | null;
-  adults: number;
-  children: number;
-  budget_min: number | null;
-  budget_max: number | null;
-  currency: string;
-  message: string | null;
-  stage: string;
-  priority: string;
-  owner_id: string | null;
-  lost_reason: string | null;
-  next_action_at: string | null;
-  converted_at: string | null;
-  deleted_at: string | null;
-};
-
-// ── database ─────────────────────────────────────────────────────────────────
-
-export type Database = {
-  public: {
-    Tables: {
-      jemvoyage_users: Table<JemvoyageUser, "id" | "full_name">;
-      jemvoyage_roles: Table<JemvoyageRole, "name" | "label">;
-      jemvoyage_permissions: Table<
-        JemvoyagePermission,
-        "key" | "resource" | "action" | "label"
-      >;
-      jemvoyage_role_permissions: Table<
-        { role_id: string; permission_id: string; created_at: string },
-        "role_id" | "permission_id"
-      >;
-      jemvoyage_user_roles: Table<
-        {
-          user_id: string;
-          role_id: string;
-          assigned_at: string;
-          assigned_by: string | null;
-        },
-        "user_id" | "role_id"
-      >;
-      // No column is unconditionally required: the DB enforces
-      // `file_path is not null or external_url is not null`, which the type
-      // system cannot express as a required-key set.
-      jemvoyage_media: Table<JemvoyageMedia>;
-      jemvoyage_settings: Table<JemvoyageSetting, "key">;
-      jemvoyage_seo_metadata: Table<JemvoyageSeoMetadata, "entity_type">;
-      jemvoyage_cms_pages: Table<JemvoyageCmsPage, "slug" | "title">;
-      jemvoyage_hero_slides: Table<JemvoyageHeroSlide, "headline">;
-      jemvoyage_homepage_sections: Table<
-        JemvoyageHomepageSection,
-        "section_key" | "heading"
-      >;
-      jemvoyage_menus: Table<JemvoyageMenu, "key" | "label">;
-      jemvoyage_menu_items: Table<
-        JemvoyageMenuItem,
-        "menu_id" | "label" | "url"
-      >;
-      jemvoyage_blog_categories: Table<JemvoyageBlogCategory, "slug" | "name">;
-      jemvoyage_blog_posts: Table<JemvoyageBlogPost, "slug" | "title">;
-      jemvoyage_faqs: Table<JemvoyageFaq, "question" | "answer">;
-      jemvoyage_offers: Table<JemvoyageOffer, "slug" | "title">;
-      jemvoyage_newsletter_subscribers: Table<
-        JemvoyageNewsletterSubscriber,
-        "email"
-      >;
-
-      // catalogue
-      jemvoyage_destinations: Table<JemvoyageDestination, "slug" | "name">;
-      jemvoyage_tour_categories: Table<JemvoyageTourCategory, "slug" | "name">;
-      jemvoyage_tours: Table<JemvoyageTour, "slug" | "title">;
-      jemvoyage_tour_itineraries: Table<
-        JemvoyageTourItinerary,
-        "tour_id" | "day_number" | "title"
-      >;
-      jemvoyage_activities: Table<JemvoyageActivity, "slug" | "name">;
-      jemvoyage_tour_media: Table<
-        { tour_id: string; media_id: string; display_order: number; created_at: string },
-        "tour_id" | "media_id"
-      >;
-      jemvoyage_tour_destinations: Table<
-        { tour_id: string; destination_id: string; display_order: number },
-        "tour_id" | "destination_id"
-      >;
-      jemvoyage_destination_media: Table<
-        { destination_id: string; media_id: string; display_order: number; created_at: string },
-        "destination_id" | "media_id"
-      >;
-
-      // fleet
-      jemvoyage_vehicle_categories: Table<JemvoyageVehicleCategory, "slug" | "name">;
-      jemvoyage_vehicles: Table<
-        JemvoyageVehicle,
-        "slug" | "registration" | "make" | "model"
-      >;
-      jemvoyage_vehicle_rates: Table<JemvoyageVehicleRate>;
-      jemvoyage_vehicle_features: Table<JemvoyageVehicleFeature, "slug" | "name">;
-      jemvoyage_vehicle_images: Table<
-        {
-          id: string;
-          vehicle_id: string;
-          media_id: string;
-          angle: string | null;
-          display_order: number;
-          created_at: string;
-        },
-        "vehicle_id" | "media_id"
-      >;
-
-      // engagement
-      jemvoyage_reviews: Table<
-        JemvoyageReview,
-        "author_name" | "body" | "rating_overall"
-      >;
-      jemvoyage_leads: Table<JemvoyageLead, "full_name">;
-      jemvoyage_lead_sources: Table<
-        {
-          id: string;
-          slug: string;
-          name: string;
-          is_active: boolean;
-          display_order: number;
-          created_at: string;
-        },
-        "slug" | "name"
-      >;
-    };
-    Views: Record<never, never>;
-    Functions: {
-      jemvoyage_resolve_media: {
-        Args: { p_media_id: string | null; p_category?: string };
-        Returns: JemvoyageMedia;
-      };
-      jemvoyage_my_permissions: {
-        Args: Record<string, never>;
-        Returns: string[];
-      };
-      jemvoyage_has_permission: {
-        Args: { p_key: string };
-        Returns: boolean;
-      };
-      jemvoyage_has_role: {
-        Args: { p_role: string };
-        Returns: boolean;
-      };
-      jemvoyage_is_staff: {
-        Args: Record<string, never>;
-        Returns: boolean;
-      };
-      jemvoyage_is_super_admin: {
-        Args: Record<string, never>;
-        Returns: boolean;
-      };
-    };
-    Enums: Record<never, never>;
-    CompositeTypes: Record<never, never>;
-  };
-};
-
-export type Tables<T extends keyof Database["public"]["Tables"]> =
-  Database["public"]["Tables"][T]["Row"];
-export type InsertDto<T extends keyof Database["public"]["Tables"]> =
-  Database["public"]["Tables"][T]["Insert"];
-export type UpdateDto<T extends keyof Database["public"]["Tables"]> =
-  Database["public"]["Tables"][T]["Update"];
+/** Convenience: the tables an admin surface can list generically. */
+export type JemvoyageTableName = keyof Database["public"]["Tables"];

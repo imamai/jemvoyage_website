@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 import { getMediaByIds } from "@/lib/cms/queries";
-import { createClient } from "@/lib/supabase/server";
+import { createStaticClient } from "@/lib/supabase/static";
 import { ServicePage } from "@/components/site/service-page";
 
 export const revalidate = 3600;
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 };
 
 export default async function CorporateTravelPage() {
-  const supabase = await createClient();
+  const supabase = createStaticClient();
   const { data } = await supabase
     .from("jemvoyage_media")
     .select("id")

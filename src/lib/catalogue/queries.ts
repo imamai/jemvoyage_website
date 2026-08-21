@@ -2,7 +2,6 @@ import "server-only";
 
 import { cache } from "react";
 
-import { createClient } from "@/lib/supabase/server";
 import { createStaticClient } from "@/lib/supabase/static";
 import { getMediaByIds, type MediaRef } from "@/lib/cms/queries";
 import type {
@@ -34,7 +33,7 @@ export type DestinationWithMedia = JemvoyageDestination & {
 /** Attach media, category and destination to a set of tour rows in 3 queries. */
 async function decorateTours(rows: JemvoyageTour[]): Promise<TourWithMedia[]> {
   if (rows.length === 0) return [];
-  const supabase = await createClient();
+  const supabase = createStaticClient();
 
   const [media, categories, destinations] = await Promise.all([
     getMediaByIds(rows.flatMap((t) => [t.thumbnail_media_id, t.primary_media_id])),
@@ -77,7 +76,7 @@ export const getTours = cache(
     categorySlug?: string;
     destinationSlug?: string;
   } = {}): Promise<TourWithMedia[]> => {
-    const supabase = await createClient();
+    const supabase = createStaticClient();
 
     let query = supabase
       .from("jemvoyage_tours")
@@ -122,7 +121,7 @@ export type TourDetail = TourWithMedia & {
 
 export const getTourBySlug = cache(
   async (slug: string): Promise<TourDetail | null> => {
-    const supabase = await createClient();
+    const supabase = createStaticClient();
 
     const { data: tour } = await supabase
       .from("jemvoyage_tours")
@@ -183,7 +182,7 @@ export const getDestinations = cache(
   async (opts: { limit?: number; featuredOnly?: boolean } = {}): Promise<
     DestinationWithMedia[]
   > => {
-    const supabase = await createClient();
+    const supabase = createStaticClient();
 
     let query = supabase
       .from("jemvoyage_destinations")
@@ -213,7 +212,7 @@ export const getDestinations = cache(
 
 export const getDestinationBySlug = cache(
   async (slug: string): Promise<DestinationWithMedia | null> => {
-    const supabase = await createClient();
+    const supabase = createStaticClient();
     const { data } = await supabase
       .from("jemvoyage_destinations")
       .select("*")

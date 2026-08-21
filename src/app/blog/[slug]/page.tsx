@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { createClient } from "@/lib/supabase/server";
+import { createStaticClient } from "@/lib/supabase/static";
 import { getMediaByIds } from "@/lib/cms/queries";
 import { publicEnv } from "@/lib/env";
 import { formatDate } from "@/lib/utils";
@@ -15,7 +15,7 @@ export const revalidate = 1800;
 type Props = { params: Promise<{ slug: string }> };
 
 async function getPost(slug: string): Promise<JemvoyageBlogPost | null> {
-  const supabase = await createClient();
+  const supabase = createStaticClient();
   const { data } = await supabase
     .from("jemvoyage_blog_posts")
     .select("*")
@@ -23,6 +23,15 @@ async function getPost(slug: string): Promise<JemvoyageBlogPost | null> {
     .eq("status", "published")
     .maybeSingle();
   return (data as JemvoyageBlogPost) ?? null;
+}
+
+export async function generateStaticParams() {
+  const supabase = createStaticClient();
+  const { data } = await supabase
+    .from("jemvoyage_blog_posts")
+    .select("slug")
+    .eq("status", "published");
+  return (data ?? []).map(({ slug }) => ({ slug }));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

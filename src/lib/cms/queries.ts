@@ -2,7 +2,7 @@ import "server-only";
 
 import { cache } from "react";
 
-import { createClient } from "@/lib/supabase/server";
+import { createStaticClient } from "@/lib/supabase/static";
 import type {
   JemvoyageFaq,
   JemvoyageHeroSlide,
@@ -14,14 +14,18 @@ import type {
 /**
  * Read side of the CMS.
  *
- * Media is fetched separately and joined in memory rather than through
- * PostgREST embedding. Two reasons: the hand-written Database type declares no
- * relationships (deliberately — see lib/db/types.ts), and the homepage needs
- * roughly twenty media rows total, so one extra round trip beats N embedded
- * sub-selects.
+ * Everything here is public content, so it uses the request-free client rather
+ * than the cookie-based one. That is what lets these pages prerender and serve
+ * from cache instead of rendering per request — reading `cookies()` anywhere in
+ * a page's tree forces it dynamic. RLS still applies: the anon key sees only
+ * published, non-private rows.
+ *
+ * Media is joined in memory rather than through PostgREST embedding, because
+ * the homepage needs roughly twenty media rows in total and one extra round
+ * trip beats N embedded sub-selects.
  *
  * Every function is wrapped in React's `cache`, so a layout and a page that
- * both need the primary menu share a single query per request.
+ * both need the primary menu share a single query per render.
  */
 
 export const MEDIA_COLUMNS =
@@ -40,7 +44,7 @@ export const getMediaByIds = cache(
     const unique = [...new Set(ids.filter((id): id is string => Boolean(id)))];
     if (unique.length === 0) return new Map();
 
-    const supabase = await createClient();
+    const supabase = createStaticClient();
     const { data, error } = await supabase
       .from("jemvoyage_media")
       .select(MEDIA_COLUMNS)
@@ -58,7 +62,7 @@ export type HeroSlideWithMedia = JemvoyageHeroSlide & {
 
 export const getHeroSlides = cache(
   async (placement = "home"): Promise<HeroSlideWithMedia[]> => {
-    const supabase = await createClient();
+    const supabase = createStaticClient();
     const { data, error } = await supabase
       .from("jemvoyage_hero_slides")
       .select("*")
@@ -89,7 +93,7 @@ export type HomepageSectionWithMedia = JemvoyageHomepageSection & {
 
 export const getHomepageSections = cache(
   async (): Promise<HomepageSectionWithMedia[]> => {
-    const supabase = await createClient();
+    const supabase = createStaticClient();
     const { data, error } = await supabase
       .from("jemvoyage_homepage_sections")
       .select("*")
@@ -114,9 +118,40 @@ export const getHomepageSectionMap = cache(
   },
 );
 
+export type MenuNode = JemvoyageMenuItem & { children: JemvoyageMenuItem[] };
+
+/**
+ * A menu as a two-level tree.
+ *
+ * Only two levels are built on purpose: the header renders one dropdown deep,
+ * and deeper nesting in a top navigation is a usability problem rather than a
+ * feature. Grouping is data, not code — re-nesting items in the CMS changes the
+ * header with no deploy.
+ */
+export const getMenuTree = cache(
+  async (key: string): Promise<MenuNode[]> => {
+    const items = await getMenu(key);
+
+    const parents = items.filter((i) => !i.parent_id);
+    const childrenByParent = new Map<string, JemvoyageMenuItem[]>();
+
+    for (const item of items) {
+      if (!item.parent_id) continue;
+      const list = childrenByParent.get(item.parent_id) ?? [];
+      list.push(item);
+      childrenByParent.set(item.parent_id, list);
+    }
+
+    return parents.map((parent) => ({
+      ...parent,
+      children: childrenByParent.get(parent.id) ?? [],
+    }));
+  },
+);
+
 export const getMenu = cache(
   async (key: string): Promise<JemvoyageMenuItem[]> => {
-    const supabase = await createClient();
+    const supabase = createStaticClient();
 
     const { data: menu } = await supabase
       .from("jemvoyage_menus")
@@ -142,7 +177,7 @@ export const getMenu = cache(
  */
 export const getPublicSettings = cache(
   async (): Promise<Record<string, unknown>> => {
-    const supabase = await createClient();
+    const supabase = createStaticClient();
     const { data, error } = await supabase
       .from("jemvoyage_settings")
       .select("key, value")
@@ -165,7 +200,7 @@ export function settingString(
 
 export const getFaqs = cache(
   async (category?: string): Promise<JemvoyageFaq[]> => {
-    const supabase = await createClient();
+    const supabase = createStaticClient();
     let query = supabase
       .from("jemvoyage_faqs")
       .select("*")

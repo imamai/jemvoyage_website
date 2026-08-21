@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { createClient } from "@/lib/supabase/server";
+import { createStaticClient } from "@/lib/supabase/static";
 import { getMediaByIds } from "@/lib/cms/queries";
 import { formatDate, formatMoney } from "@/lib/utils";
 import { JemImage } from "@/components/media/JemImage";
@@ -29,7 +29,7 @@ const AUDIENCE_LABELS: Record<string, string> = {
 };
 
 export default async function OffersPage() {
-  const supabase = await createClient();
+  const supabase = createStaticClient();
 
   // RLS already limits anon to active offers inside their date window.
   const { data } = await supabase

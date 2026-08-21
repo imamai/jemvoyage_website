@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Star } from "lucide-react";
 
-import { createClient } from "@/lib/supabase/server";
+import { createStaticClient } from "@/lib/supabase/static";
 import { formatDate } from "@/lib/utils";
 import { PageHero } from "@/components/site/page-hero";
 import { ButtonLink } from "@/components/ui/button";
@@ -39,7 +39,7 @@ function Stars({ rating }: { rating: number }) {
 }
 
 export default async function ReviewsPage() {
-  const supabase = await createClient();
+  const supabase = createStaticClient();
 
   // RLS restricts anon to approved, non-deleted reviews, so this cannot surface
   // anything awaiting moderation.

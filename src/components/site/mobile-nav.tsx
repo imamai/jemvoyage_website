@@ -7,16 +7,21 @@ import { Menu, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { ButtonLink } from "@/components/ui/button";
-import type { JemvoyageMenuItem } from "@/lib/db/types";
+import type { MenuNode } from "@/lib/cms/queries";
 
-export function MobileNav({ items }: { items: JemvoyageMenuItem[] }) {
+/**
+ * Mobile navigation.
+ *
+ * Groups render as native <details> accordions: they work before hydration,
+ * are announced correctly by screen readers, and need no state of their own.
+ * The group containing the current page is open on load.
+ */
+export function MobileNav({ tree }: { tree: MenuNode[] }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
-  // Close on navigation, otherwise the panel stays open over the new page.
   useEffect(() => setOpen(false), [pathname]);
 
-  // Lock scroll behind the panel and restore whatever was there before.
   useEffect(() => {
     if (!open) return;
     const previous = document.body.style.overflow;
@@ -35,7 +40,15 @@ export function MobileNav({ items }: { items: JemvoyageMenuItem[] }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
+  const groupContainsPath = (node: MenuNode) =>
+    pathname === node.url ||
+    node.children.some(
+      (c) => pathname === c.url || pathname.startsWith(`${c.url}/`),
+    );
+
   return (
+    // Must mirror the header's `lg:` breakpoint, or both the desktop nav and
+    // the burger would be visible at the same width.
     <div className="lg:hidden">
       <button
         type="button"
@@ -51,40 +64,75 @@ export function MobileNav({ items }: { items: JemvoyageMenuItem[] }) {
       <div
         id="jemvoyage-mobile-nav"
         hidden={!open}
-        className={cn(
-          "fixed inset-x-0 top-[var(--header-height,4.5rem)] bottom-0 z-50",
-          "overflow-y-auto border-t border-border bg-surface px-5 py-6",
-        )}
+        className="fixed inset-x-0 top-[var(--header-height,4.5rem)] bottom-0 z-50 overflow-y-auto border-t border-border bg-surface px-5 py-4"
       >
         <nav aria-label="Primary">
-          <ul className="flex flex-col">
-            {items.map((item) => {
-              const active =
-                pathname === item.url || pathname.startsWith(`${item.url}/`);
-              return (
-                <li key={item.id}>
+          <ul className="divide-y divide-border">
+            {tree.map((node) => (
+              <li key={node.id}>
+                {node.children.length === 0 ? (
                   <Link
-                    href={item.url}
-                    aria-current={active ? "page" : undefined}
-                    className={cn(
-                      "block border-b border-border py-4 text-lg",
-                      active ? "text-gold-600" : "text-brand-800",
-                    )}
+                    href={node.url}
+                    className="block py-4 text-lg text-brand-800"
                   >
-                    {item.label}
+                    {node.label}
                   </Link>
-                </li>
-              );
-            })}
+                ) : (
+                  <details open={groupContainsPath(node)} className="group py-1">
+                    <summary className="flex cursor-pointer list-none items-center justify-between py-3 text-lg text-brand-800">
+                      {node.label}
+                      <span
+                        aria-hidden
+                        className="text-2xl leading-none text-gold-500 transition-transform duration-200 group-open:rotate-45"
+                      >
+                        +
+                      </span>
+                    </summary>
+
+                    <ul className="pb-2 pl-3">
+                      {node.children.map((child) => {
+                        const active =
+                          pathname === child.url ||
+                          pathname.startsWith(`${child.url}/`);
+                        return (
+                          <li key={child.id}>
+                            <Link
+                              href={child.url}
+                              aria-current={active ? "page" : undefined}
+                              className={cn(
+                                "block border-l border-border py-2.5 pl-4 text-base",
+                                active
+                                  ? "border-gold-500 text-gold-600"
+                                  : "text-sand-700",
+                              )}
+                            >
+                              {child.label}
+                              {child.description ? (
+                                <span className="mt-0.5 block text-xs text-sand-500">
+                                  {child.description}
+                                </span>
+                              ) : null}
+                            </Link>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </details>
+                )}
+              </li>
+            ))}
           </ul>
         </nav>
 
-        <div className="mt-8 flex flex-col gap-3">
+        <div className="mt-6 flex flex-col gap-3 border-t border-border pt-6">
           <ButtonLink href="/plan-your-trip" variant="primary" size="lg">
             Plan my trip
           </ButtonLink>
           <ButtonLink href="/quote" variant="outline" size="lg">
             Request a quote
+          </ButtonLink>
+          <ButtonLink href="/account" variant="ghost" size="lg">
+            My account
           </ButtonLink>
         </div>
       </div>

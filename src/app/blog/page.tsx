@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { createClient } from "@/lib/supabase/server";
+import { createStaticClient } from "@/lib/supabase/static";
 import { getMediaByIds } from "@/lib/cms/queries";
 import { formatDate } from "@/lib/utils";
 import { JemImage } from "@/components/media/JemImage";
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
 };
 
 export default async function BlogPage() {
-  const supabase = await createClient();
+  const supabase = createStaticClient();
 
   const [postsResult, categoriesResult] = await Promise.all([
     supabase

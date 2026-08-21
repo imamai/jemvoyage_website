@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createStaticClient } from "@/lib/supabase/static";
 import { JemImage } from "@/components/media/JemImage";
 import { ButtonLink } from "@/components/ui/button";
 import { Container, Eyebrow } from "@/components/ui/section";
@@ -13,7 +13,7 @@ import type { MediaRef } from "@/lib/cms/queries";
  * still comes from the CMS, so this page ages with the rest of the site.
  */
 async function getBackdrop(): Promise<MediaRef | null> {
-  const supabase = await createClient();
+  const supabase = createStaticClient();
   const { data } = await supabase
     .from("jemvoyage_media")
     .select(

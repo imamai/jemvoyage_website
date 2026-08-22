@@ -61,10 +61,16 @@ export function MobileNav({ tree }: { tree: MenuNode[] }) {
         {open ? <X size={22} aria-hidden /> : <Menu size={22} aria-hidden />}
       </button>
 
+      {/*
+        overscroll-contain stops scroll chaining to the page underneath once the
+        panel hits its end, which body overflow:hidden alone does not prevent on
+        iOS. The safe-area padding keeps the last button clear of the home
+        indicator on notched phones.
+      */}
       <div
         id="jemvoyage-mobile-nav"
         hidden={!open}
-        className="fixed inset-x-0 top-[var(--header-height,4.5rem)] bottom-0 z-50 overflow-y-auto border-t border-border bg-surface px-5 py-4"
+        className="fixed inset-x-0 top-[var(--header-height,4.5rem)] bottom-0 z-50 overflow-y-auto overscroll-contain border-t border-border bg-surface px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
       >
         <nav aria-label="Primary">
           <ul className="divide-y divide-border">
@@ -100,7 +106,7 @@ export function MobileNav({ tree }: { tree: MenuNode[] }) {
                               href={child.url}
                               aria-current={active ? "page" : undefined}
                               className={cn(
-                                "block border-l border-border py-2.5 pl-4 text-base",
+                                "block border-l border-border py-3 pl-4 text-base",
                                 active
                                   ? "border-gold-500 text-gold-600"
                                   : "text-sand-700",

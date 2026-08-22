@@ -28,19 +28,33 @@ export async function SiteHeader() {
 
   return (
     <header
-      className="sticky top-0 z-40 border-b border-border/70 bg-surface/85 backdrop-blur-md"
+      className="sticky top-0 z-40 border-b border-border/70"
       style={{ ["--header-height" as string]: "4.5rem" }}
     >
+      {/*
+        The blur lives on this layer, not on <header> itself.
+
+        A non-none backdrop-filter makes an element a containing block for its
+        fixed-position descendants. With it on <header>, the mobile menu panel
+        (fixed, top: header-height, bottom: 0) resolved against the 4.5rem-tall
+        header instead of the viewport and collapsed to zero height — the menu
+        opened but showed nothing. Painting it here keeps the frosted glass and
+        gives the panel the viewport back.
+      */}
+      <div
+        aria-hidden
+        className="absolute inset-0 -z-10 bg-surface/85 backdrop-blur-md"
+      />
       {/*
         Three-part layout: the logo and the actions size to their content, and
         the nav takes the whole remaining width and centres inside it. That
         keeps the groups optically balanced between the two edges at any width,
         rather than bunched against the logo.
       */}
-      <div className="container-page flex h-18 items-center gap-6">
+      <div className="container-page flex h-18 items-center gap-4 lg:gap-6">
         <Link
           href="/"
-          className="shrink-0 font-display text-2xl leading-none tracking-tight text-brand-800"
+          className="shrink-0 font-display text-xl leading-none tracking-tight text-brand-800 sm:text-2xl"
         >
           {siteName}
           <span className="text-gold-500">.</span>
